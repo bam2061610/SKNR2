@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Сканер товаров</title>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #1a1a2e;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    h1 { font-size: 22px; margin-bottom: 8px; }
+    .subtitle { color: #888; font-size: 14px; margin-bottom: 20px; text-align: center; }
+    #reader { width: 100%; max-width: 400px; border-radius: 12px; overflow: hidden; }
+    #result {
+      margin-top: 20px; padding: 20px; background: #16213e;
+      border-radius: 12px; width: 100%; max-width: 400px;
+      text-align: center; min-height: 80px;
+    }
+    #result.found { background: #0a3d2a; border: 2px solid #2ecc71; }
+    #result.notfound { background: #3d0a0a; border: 2px solid #e74c3c; }
+    .barcode-number {
+      font-size: 24px; font-weight: bold;
+      font-family: monospace; color: #2ecc71; margin-bottom: 12px;
+    }
+    .status { font-size: 16px; margin-bottom: 12px; }
+    .waiting { color: #888; font-size: 16px; }
+    .open-btn {
+      display: inline-block; padding: 14px 28px; background: #2ecc71;
+      color: #000; font-size: 18px; font-weight: bold;
+      border-radius: 10px; text-decoration: none; margin-top: 10px;
+    }
+    .scan-again {
+      display: inline-block; padding: 10px 20px; background: #16213e;
+      color: #fff; font-size: 14px; border: 1px solid #444;
+      border-radius: 8px; margin-top: 12px; cursor: pointer;
+    }
+    .db-status { font-size: 12px; color: #555; margin-bottom: 15px; }
+    .db-status.ok { color: #2ecc71; }
+    .db-status.err { color: #e74c3c; }
+    #reader select, #reader button {
+      background: #16213e !important; color: #fff !important;
+      border: 1px solid #333 !important; border-radius: 6px !important;
+      padding: 8px 12px !important;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>📷 Сканер товаров</h1>
+  <p class="subtitle">Наведи камеру на штрихкод товара</p>
+  <p class="db-status" id="dbStatus">Загрузка базы...</p>
+
+  <div id="reader"></div>
+
+  <div id="result">
+    <span class="waiting">Ожидаю штрихкод...</span>
+  </div>
+
+  <script>
+    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTpRYWo3PdDGmKTiUW97_zx1BcbtPYZKy0VeifwKLBA0J8oO-DCNyfx3Fbgh81psypZQ6bIG3lsNtmS/pub?gid=0&single=true&output=csv';
+
+    let products = {};
+
+    fetch(CSV_URL)
+      .then(r => r.text())
+      .then(csv => {
+        const lines = csv.split('\n');
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (!line) continue;
+          const firstComma = line.indexOf(',');
+          if (firstComma === -1) continue;
+          const code = line.substring(0, firstComma).replace(/"/g, '').trim();
+          const url = line.substring(firstComma + 1).replace(/"/g, '').trim();
+          if (code && url) products[code] = url;
+        }
+        const count = Object.keys(products).length;
+        const status = document.getElementById('dbStatus');
+        status.className = 'db-status ok';
+        status.textContent = 'База загружена: ' + count + ' товаров';
+      })
+      .catch(err => {
+        document.getElementById('dbStatus').className = 'db-status err';
+        document.getElementById('dbStatus').textContent = 'Ошибка загрузки базы';
+      });
+
+    let lastScanned = '';
+
+    function onScanSuccess(decodedText) {
+      if (decodedText === lastScanned) return;
+      lastScanned = decodedText;
+      if (navigator.vibrate) navigator.vibrate(100);
+
+      const result = document.getElementById('result');
+      const url = products[decodedText];
+
+      if (url) {
+        result.className = 'found';
+        result.innerHTML =
+          '<div class="barcode-number">' + decodedText + '</div>' +
+          '<div class="status">Найден! Открываю...</div>' +
+          '<a class="open-btn" href="' + url + '" target="_blank">Открыть товар</a>' +
+          '<div><span class="scan-again" onclick="resetScan()">Сканировать ещё</span></div>';
+        window.open(url, '_blank');
+      } else {
+        result.className = 'notfound';
+        result.innerHTML =
+          '<div class="barcode-number">' + decodedText + '</div>' +
+          '<div class="status">Товар не найден в базе</div>' +
+          '<div><span class="scan-again" onclick="resetScan()">Сканировать ещё</span></div>';
+      }
+    }
+
+    function resetScan() {
+      lastScanned = '';
+      document.getElementById('result').className = '';
+      document.getElementById('result').innerHTML = '<span class="waiting">Ожидаю штрихкод...</span>';
+    }
+
+    function onScanFailure() {}
+
+    new Html5QrcodeScanner("reader", {
+      fps: 10,
+      qrbox: { width: 250, height: 150 },
+      supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
+      rememberLastUsedCamera: true,
+      formatsToSupport: [
+        Html5QrcodeSupportedFormats.EAN_13,
+        Html5QrcodeSupportedFormats.EAN_8,
+        Html5QrcodeSupportedFormats.CODE_128,
+        Html5QrcodeSupportedFormats.CODE_39,
+        Html5QrcodeSupportedFormats.UPC_A,
+        Html5QrcodeSupportedFormats.UPC_E,
+        Html5QrcodeSupportedFormats.QR_CODE
+      ]
+    }).render(onScanSuccess, onScanFailure);
+  </script>
+
+</body>
+</html>
