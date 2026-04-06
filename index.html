@@ -4,6 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Сканер товаров</title>
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#1a1a2e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -18,7 +22,7 @@
       padding: 20px;
     }
     h1 { font-size: 22px; margin-bottom: 8px; }
-    .subtitle { color: #888; font-size: 14px; margin-bottom: 20px; text-align: center; }
+    .subtitle { color: #888; font-size: 14px; margin-bottom: 10px; text-align: center; }
     #reader { width: 100%; max-width: 400px; border-radius: 12px; overflow: hidden; }
     #result {
       margin-top: 20px; padding: 20px; background: #16213e;
@@ -43,13 +47,25 @@
       color: #fff; font-size: 14px; border: 1px solid #444;
       border-radius: 8px; margin-top: 12px; cursor: pointer;
     }
-    .db-status { font-size: 12px; color: #555; margin-bottom: 15px; }
+    .status-bar {
+      display: flex; gap: 10px; margin-bottom: 15px;
+      font-size: 12px; align-items: center;
+    }
+    .db-status { color: #555; }
     .db-status.ok { color: #2ecc71; }
     .db-status.err { color: #e74c3c; }
+    .net-status { padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+    .net-status.online { background: #0a3d2a; color: #2ecc71; }
+    .net-status.offline { background: #3d2a0a; color: #f39c12; }
     #reader select, #reader button {
       background: #16213e !important; color: #fff !important;
       border: 1px solid #333 !important; border-radius: 6px !important;
       padding: 8px 12px !important;
+    }
+    .install-btn {
+      display: none; padding: 10px 20px; background: #3498db;
+      color: #fff; font-size: 14px; border: none;
+      border-radius: 8px; margin-bottom: 15px; cursor: pointer;
     }
   </style>
 </head>
@@ -57,7 +73,13 @@
 
   <h1>📷 Сканер товаров</h1>
   <p class="subtitle">Наведи камеру на штрихкод товара</p>
-  <p class="db-status" id="dbStatus">Загрузка базы...</p>
+
+  <div class="status-bar">
+    <span class="db-status" id="dbStatus">Загрузка базы...</span>
+    <span class="net-status" id="netStatus"></span>
+  </div>
+
+  <button class="install-btn" id="installBtn">Установить приложение</button>
 
   <div id="reader"></div>
 
@@ -66,6 +88,54 @@
   </div>
 
   <script>
+    // =============================================
+    // РЕГИСТРАЦИЯ SERVICE WORKER
+    // =============================================
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js')
+        .then(() => console.log('SW зарегистрирован'))
+        .catch(err => console.error('SW ошибка:', err));
+    }
+
+    // =============================================
+    // СТАТУС СЕТИ
+    // =============================================
+    function updateNetStatus() {
+      const el = document.getElementById('netStatus');
+      if (navigator.onLine) {
+        el.className = 'net-status online';
+        el.textContent = 'онлайн';
+      } else {
+        el.className = 'net-status offline';
+        el.textContent = 'офлайн';
+      }
+    }
+    updateNetStatus();
+    window.addEventListener('online', updateNetStatus);
+    window.addEventListener('offline', updateNetStatus);
+
+    // =============================================
+    // КНОПКА УСТАНОВКИ PWA
+    // =============================================
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', e => {
+      e.preventDefault();
+      deferredPrompt = e;
+      document.getElementById('installBtn').style.display = 'block';
+    });
+    document.getElementById('installBtn').addEventListener('click', () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(() => {
+          deferredPrompt = null;
+          document.getElementById('installBtn').style.display = 'none';
+        });
+      }
+    });
+
+    // =============================================
+    // ЗАГРУЗКА БАЗЫ ИЗ GOOGLE SHEETS CSV
+    // =============================================
     const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTpRYWo3PdDGmKTiUW97_zx1BcbtPYZKy0VeifwKLBA0J8oO-DCNyfx3Fbgh81psypZQ6bIG3lsNtmS/pub?gid=0&single=true&output=csv';
 
     let products = {};
@@ -84,15 +154,17 @@
           if (code && url) products[code] = url;
         }
         const count = Object.keys(products).length;
-        const status = document.getElementById('dbStatus');
-        status.className = 'db-status ok';
-        status.textContent = 'База загружена: ' + count + ' товаров';
+        document.getElementById('dbStatus').className = 'db-status ok';
+        document.getElementById('dbStatus').textContent = 'База: ' + count + ' товаров';
       })
-      .catch(err => {
+      .catch(() => {
         document.getElementById('dbStatus').className = 'db-status err';
-        document.getElementById('dbStatus').textContent = 'Ошибка загрузки базы';
+        document.getElementById('dbStatus').textContent = 'База из кэша';
       });
 
+    // =============================================
+    // СКАНЕР
+    // =============================================
     let lastScanned = '';
 
     function onScanSuccess(decodedText) {
@@ -126,8 +198,6 @@
       document.getElementById('result').innerHTML = '<span class="waiting">Ожидаю штрихкод...</span>';
     }
 
-    function onScanFailure() {}
-
     new Html5QrcodeScanner("reader", {
       fps: 10,
       qrbox: { width: 250, height: 150 },
@@ -142,7 +212,7 @@
         Html5QrcodeSupportedFormats.UPC_E,
         Html5QrcodeSupportedFormats.QR_CODE
       ]
-    }).render(onScanSuccess, onScanFailure);
+    }).render(onScanSuccess, function(){});
   </script>
 
 </body>
