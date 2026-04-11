@@ -66,32 +66,16 @@
     .last-scan {
       width: 100%; max-width: 400px;
       background: var(--card); border: 1px solid var(--border);
-      border-radius: 12px; overflow: hidden;
-      min-height: 46px;
-    }
-    .last-scan .empty-wrap {
-      padding: 12px 16px; display: flex; align-items: center; justify-content: center;
-    }
-    .last-scan .empty { font-size: 13px; color: var(--muted); }
-    /* Когда найден — вся карточка становится большой ссылкой */
-    .last-scan a.tap-link {
+      border-radius: 12px; padding: 14px 16px;
       display: flex; align-items: center; justify-content: space-between;
-      padding: 14px 16px; text-decoration: none; color: inherit;
-      transition: background 0.15s;
+      min-height: 54px;
     }
-    .last-scan a.tap-link:active { background: rgba(255,255,255,0.05); }
     .last-scan .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
     .last-scan .code  { font-family: 'SF Mono', monospace; font-size: 17px; font-weight: 700; color: var(--green); margin-top: 2px; }
-    .last-scan .right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
     .last-scan .badge { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 8px; }
     .badge-ok { background: rgba(0,230,118,0.15); color: var(--green); }
     .badge-no { background: rgba(255,82,82,0.15);  color: var(--red); }
-    .tap-hint { font-size: 11px; color: var(--muted); }
-    /* не найден */
-    .last-scan .notfound-wrap {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 14px 16px;
-    }
+    .last-scan .empty { font-size: 13px; color: var(--muted); margin: auto; }
 
     /* SCANNER */
     #reader {
@@ -100,9 +84,6 @@
       border: 1px solid var(--border);
       background: #000;
     }
-    #reader video { display: block; width: 100% !important; height: auto !important; }
-    #reader > div > div:first-child { display: none !important; }
-    #reader img[alt="Info icon"]    { display: none !important; }
 
     .install-btn {
       display: none; padding: 11px 22px; background: var(--card);
@@ -132,7 +113,7 @@
   </div>
 
   <div class="last-scan" id="lastScan">
-    <div class="empty-wrap"><span class="empty">Ещё ничего не отсканировано</span></div>
+    <span class="empty">Ещё ничего не отсканировано</span>
   </div>
 
   <button class="install-btn" id="installBtn">Установить приложение</button>
@@ -142,7 +123,7 @@
   <script>
     // ── SW ──
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js?v=6')
+      navigator.serviceWorker.register('./sw.js?v=10')
         .then(() => console.log('SW ok'))
         .catch(e => console.error(e));
     }
@@ -238,34 +219,27 @@
       const box    = document.getElementById('lastScan');
 
       if (rawUrl) {
-        // Google Translate — корректно сохраняет картинки в отличие от Яндекса
         const ruUrl   = 'https://translate.google.com/translate?sl=auto&tl=ru&u=' + encodeURIComponent(rawUrl);
         const openUrl = currentMode === 'russian' ? ruUrl : rawUrl;
         const modeTag = currentMode === 'russian' ? '🇷🇺 рус' : '🌐 ориг';
 
-        // Вся карточка — кликабельная ссылка (открывается в новой вкладке по тапу)
         box.innerHTML =
-          '<a class="tap-link" href="' + openUrl + '" target="_blank" rel="noopener noreferrer">' +
-            '<div>' +
-              '<div class="label">Найден — тапни чтобы открыть</div>' +
-              '<div class="code">' + decodedText + '</div>' +
-            '</div>' +
-            '<div class="right">' +
-              '<span class="badge badge-ok">' + modeTag + '</span>' +
-              '<span class="tap-hint">↗ открыть</span>' +
-            '</div>' +
-          '</a>';
+          '<div>' +
+            '<div class="label">Открыто</div>' +
+            '<div class="code">' + decodedText + '</div>' +
+          '</div>' +
+          '<span class="badge badge-ok">' + modeTag + '</span>';
+
+        // Автооткрытие — один раз, повтор исключён т.к. lastScanned не сбрасывается
+        window.open(openUrl, '_blank');
       } else {
         box.innerHTML =
-          '<div class="notfound-wrap">' +
-            '<div>' +
-              '<div class="label">Не найден</div>' +
-              '<div class="code" style="color:var(--red)">' + decodedText + '</div>' +
-            '</div>' +
-            '<span class="badge badge-no">нет в базе</span>' +
-          '</div>';
+          '<div>' +
+            '<div class="label">Не найден</div>' +
+            '<div class="code" style="color:var(--red)">' + decodedText + '</div>' +
+          '</div>' +
+          '<span class="badge badge-no">нет в базе</span>';
       }
-      // НЕТ авто-сброса — повторное открытие исключено
     }
 
     // Используем низкоуровневый Html5Qrcode — без лишних кнопок/UI
@@ -279,7 +253,7 @@
           { deviceId: { exact: cam.id } },
           {
             fps: 10,
-            qrbox: { width: 220, height: 90 },
+            qrbox: { width: 300, height: 130 },
             formatsToSupport: [
               Html5QrcodeSupportedFormats.EAN_13,
               Html5QrcodeSupportedFormats.EAN_8,
@@ -300,7 +274,7 @@
           { facingMode: 'environment' },
           {
             fps: 10,
-            qrbox: { width: 220, height: 90 },
+            qrbox: { width: 300, height: 130 },
             formatsToSupport: [
               Html5QrcodeSupportedFormats.EAN_13,
               Html5QrcodeSupportedFormats.EAN_8,

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'scanner-v9';
+const CACHE_NAME = 'scanner-v10';
 const URLS_TO_CACHE = [
   './',
   './index.html',
