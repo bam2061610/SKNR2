@@ -67,12 +67,41 @@
       color: #fff; font-size: 14px; border: none;
       border-radius: 8px; margin-bottom: 15px; cursor: pointer;
     }
+    .mode-toggle {
+      display: flex; gap: 12px; margin-bottom: 14px;
+      background: #16213e; border-radius: 10px; padding: 8px 16px;
+    }
+    .mode-label {
+      display: flex; align-items: center; gap: 6px;
+      cursor: pointer; font-size: 14px; color: #aaa;
+      user-select: none;
+    }
+    .mode-label input[type="radio"] { display: none; }
+    .mode-label span {
+      padding: 5px 14px; border-radius: 7px;
+      border: 1px solid #333; transition: all 0.2s;
+    }
+    .mode-label input[type="radio"]:checked + span {
+      background: #2ecc71; color: #000;
+      border-color: #2ecc71; font-weight: bold;
+    }
   </style>
 </head>
 <body>
 
   <h1>📷 Сканер товаров</h1>
   <p class="subtitle">Наведи камеру на штрихкод товара</p>
+
+  <div class="mode-toggle">
+    <label class="mode-label">
+      <input type="radio" name="mode" value="original" checked>
+      <span>Оригинал</span>
+    </label>
+    <label class="mode-label">
+      <input type="radio" name="mode" value="russian">
+      <span>Русский</span>
+    </label>
+  </div>
 
   <div class="status-bar">
     <span class="db-status" id="dbStatus">Загрузка базы...</span>
@@ -140,6 +169,19 @@
 
     let products = {};
 
+    function parseCSVLine(line) {
+      const fields = [];
+      let cur = '', inQ = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') { inQ = !inQ; }
+        else if (ch === ',' && !inQ) { fields.push(cur.trim()); cur = ''; }
+        else { cur += ch; }
+      }
+      fields.push(cur.trim());
+      return fields;
+    }
+
     fetch(CSV_URL)
       .then(r => r.text())
       .then(csv => {
@@ -147,10 +189,10 @@
         for (let i = 1; i < lines.length; i++) {
           const line = lines[i].trim();
           if (!line) continue;
-          const firstComma = line.indexOf(',');
-          if (firstComma === -1) continue;
-          const code = line.substring(0, firstComma).replace(/"/g, '').trim();
-          const url = line.substring(firstComma + 1).replace(/"/g, '').trim();
+          const parts = parseCSVLine(line);
+          if (parts.length < 2) continue;
+          const code = parts[0].replace(/"/g, '').trim();
+          const url = parts[1].replace(/"/g, '').trim();
           if (code && url) products[code] = url;
         }
         const count = Object.keys(products).length;
@@ -167,22 +209,36 @@
     // =============================================
     let lastScanned = '';
 
+    function getMode() {
+      const checked = document.querySelector('input[name="mode"]:checked');
+      return checked ? checked.value : 'original';
+    }
+
+    function buildOpenUrl(rawUrl) {
+      if (getMode() === 'russian') {
+        return 'https://translate.yandex.ru/translate?url=' + encodeURIComponent(rawUrl) + '&lang=auto-ru';
+      }
+      return rawUrl;
+    }
+
     function onScanSuccess(decodedText) {
       if (decodedText === lastScanned) return;
       lastScanned = decodedText;
       if (navigator.vibrate) navigator.vibrate(100);
 
       const result = document.getElementById('result');
-      const url = products[decodedText];
+      const rawUrl = products[decodedText];
 
-      if (url) {
+      if (rawUrl) {
+        const openUrl = buildOpenUrl(rawUrl);
+        const modeLabel = getMode() === 'russian' ? 'Открыть (рус.)' : 'Открыть товар';
         result.className = 'found';
         result.innerHTML =
           '<div class="barcode-number">' + decodedText + '</div>' +
           '<div class="status">Найден! Открываю...</div>' +
-          '<a class="open-btn" href="' + url + '" target="_blank">Открыть товар</a>' +
+          '<a class="open-btn" href="' + openUrl + '" target="_blank">' + modeLabel + '</a>' +
           '<div><span class="scan-again" onclick="resetScan()">Сканировать ещё</span></div>';
-        window.open(url, '_blank');
+        window.open(openUrl, '_blank');
       } else {
         result.className = 'notfound';
         result.innerHTML =
