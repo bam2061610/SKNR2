@@ -62,7 +62,6 @@
     .mode-btn.active-orig { background: var(--green); color: #000; }
     .mode-btn.active-ru   { background: var(--blue);  color: #fff; }
 
-
     /* SCANNER */
     #reader {
       width: 100%; max-width: 400px;
@@ -76,6 +75,46 @@
       color: #fff; font-size: 14px; font-weight: 600;
       border: 1px solid var(--border); border-radius: 12px; cursor: pointer;
     }
+
+    /* ИСТОРИЯ */
+    .history-wrap { width: 100%; max-width: 400px; }
+    .history-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 8px;
+    }
+    .history-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+    .history-clear {
+      font-size: 11px; color: var(--muted); background: none;
+      border: none; cursor: pointer; padding: 2px 0;
+    }
+    .history-clear:active { color: var(--red); }
+    #historyList { display: flex; flex-direction: column; gap: 6px; }
+    .h-item {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; overflow: hidden; text-decoration: none;
+      color: inherit; transition: background 0.15s;
+    }
+    .h-item:active { background: var(--card2); }
+    .h-left { padding: 11px 14px; flex: 1; min-width: 0; }
+    .h-code {
+      font-family: 'SF Mono', monospace; font-size: 15px;
+      font-weight: 700; white-space: nowrap; overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .h-code.found { color: var(--green); }
+    .h-code.notfound { color: var(--red); }
+    .h-time { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .h-right { padding: 11px 14px; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+    .h-badge {
+      font-size: 10px; font-weight: 600; padding: 2px 7px;
+      border-radius: 6px; white-space: nowrap;
+    }
+    .h-badge.orig { background: rgba(0,230,118,0.12); color: var(--green); }
+    .h-badge.ru   { background: rgba(68,138,255,0.15); color: var(--blue); }
+    .h-badge.miss { background: rgba(255,82,82,0.12);  color: var(--red); }
+    .h-arrow { font-size: 14px; color: var(--muted); }
+    .history-empty { font-size: 13px; color: var(--muted); text-align: center; padding: 16px 0; }
   </style>
 </head>
 <body>
@@ -102,10 +141,18 @@
 
   <div id="reader"></div>
 
+  <div class="history-wrap" id="historyWrap" style="display:none">
+    <div class="history-header">
+      <span class="history-title">История сессии</span>
+      <button class="history-clear" onclick="clearHistory()">очистить</button>
+    </div>
+    <div id="historyList"></div>
+  </div>
+
   <script>
     // ── SW ──
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js?v=12')
+      navigator.serviceWorker.register('./sw.js?v=13')
         .then(() => console.log('SW ok'))
         .catch(e => console.error(e));
     }
@@ -148,8 +195,8 @@
       document.getElementById('btn-ru').className   = 'mode-btn' + (m === 'russian'  ? ' active-ru'   : '');
     }
 
-    // ── CSV ──
-    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTpRYWo3PdDGmKTiUW97_zx1BcbtPYZKy0VeifwKLBA0J8oO-DCNyfx3Fbgh81psypZQ6bIG3lsNtmS/pub?gid=0&single=true&output=csv';
+    // ── CSV — добавляем timestamp чтобы всегда получать свежие данные ──
+    const CSV_BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTpRYWo3PdDGmKTiUW97_zx1BcbtPYZKy0VeifwKLBA0J8oO-DCNyfx3Fbgh81psypZQ6bIG3lsNtmS/pub?gid=0&single=true&output=csv';
     let products = {};
 
     function parseCSVLine(line) {
@@ -164,7 +211,7 @@
       return fields;
     }
 
-    fetch(CSV_URL)
+    fetch(CSV_BASE + '&t=' + Date.now(), { cache: 'no-store' })
       .then(r => r.text())
       .then(csv => {
         const lines = csv.split('\n');
@@ -185,8 +232,54 @@
       .catch(() => {
         const el = document.getElementById('dbStatus');
         el.className = 'db-status err';
-        el.textContent = 'База из кэша';
+        el.textContent = 'Ошибка загрузки базы';
       });
+
+    // ── ИСТОРИЯ ──
+    const sessionHistory = [];
+
+    function addToHistory(code, rawUrl, mode, openUrl) {
+      const now = new Date();
+      const time = now.getHours().toString().padStart(2,'0') + ':' +
+                   now.getMinutes().toString().padStart(2,'0') + ':' +
+                   now.getSeconds().toString().padStart(2,'0');
+      sessionHistory.unshift({ code, rawUrl, mode, openUrl, time, found: !!rawUrl });
+      renderHistory();
+    }
+
+    function renderHistory() {
+      const wrap = document.getElementById('historyWrap');
+      const list = document.getElementById('historyList');
+      if (!sessionHistory.length) { wrap.style.display = 'none'; return; }
+      wrap.style.display = 'block';
+      list.innerHTML = sessionHistory.map(item => {
+        if (item.found) {
+          const badge = item.mode === 'russian'
+            ? '<span class="h-badge ru">🇷🇺 рус</span>'
+            : '<span class="h-badge orig">🌐 ориг</span>';
+          return '<a class="h-item" href="' + item.openUrl + '" target="_blank" rel="noopener noreferrer">' +
+            '<div class="h-left">' +
+              '<div class="h-code found">' + item.code + '</div>' +
+              '<div class="h-time">' + item.time + '</div>' +
+            '</div>' +
+            '<div class="h-right">' + badge + '<span class="h-arrow">↗</span></div>' +
+          '</a>';
+        } else {
+          return '<div class="h-item">' +
+            '<div class="h-left">' +
+              '<div class="h-code notfound">' + item.code + '</div>' +
+              '<div class="h-time">' + item.time + '</div>' +
+            '</div>' +
+            '<div class="h-right"><span class="h-badge miss">не найден</span></div>' +
+          '</div>';
+        }
+      }).join('');
+    }
+
+    function clearHistory() {
+      sessionHistory.length = 0;
+      renderHistory();
+    }
 
     // ── СКАНЕР ──
     let blocked = false;
@@ -202,16 +295,17 @@
       if (rawUrl) {
         const ruUrl   = 'https://translate.google.com/translate?sl=auto&tl=ru&u=' + encodeURIComponent(rawUrl);
         const openUrl = currentMode === 'russian' ? ruUrl : rawUrl;
+        addToHistory(decodedText, rawUrl, currentMode, openUrl);
         window.open(openUrl, '_blank');
+      } else {
+        addToHistory(decodedText, null, currentMode, null);
       }
     }
 
-    // Используем низкоуровневый Html5Qrcode — без лишних кнопок/UI
     const scanner = new Html5Qrcode("reader");
     Html5Qrcode.getCameras()
       .then(cameras => {
         if (!cameras || !cameras.length) return;
-        // Предпочитаем заднюю камеру
         const cam = cameras.find(c => /back|rear|environment/i.test(c.label)) || cameras[cameras.length - 1];
         return scanner.start(
           { deviceId: { exact: cam.id } },
@@ -219,39 +313,30 @@
             fps: 10,
             qrbox: { width: 300, height: 130 },
             formatsToSupport: [
-              Html5QrcodeSupportedFormats.EAN_13,
-              Html5QrcodeSupportedFormats.EAN_8,
-              Html5QrcodeSupportedFormats.CODE_128,
-              Html5QrcodeSupportedFormats.CODE_39,
-              Html5QrcodeSupportedFormats.UPC_A,
-              Html5QrcodeSupportedFormats.UPC_E,
+              Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.EAN_8,
+              Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.CODE_39,
+              Html5QrcodeSupportedFormats.UPC_A, Html5QrcodeSupportedFormats.UPC_E,
               Html5QrcodeSupportedFormats.QR_CODE
             ]
           },
-          onScanSuccess,
-          null
+          onScanSuccess, null
         );
       })
       .catch(() => {
-        // Fallback — facingMode environment
         scanner.start(
           { facingMode: 'environment' },
           {
             fps: 10,
             qrbox: { width: 300, height: 130 },
             formatsToSupport: [
-              Html5QrcodeSupportedFormats.EAN_13,
-              Html5QrcodeSupportedFormats.EAN_8,
-              Html5QrcodeSupportedFormats.CODE_128,
-              Html5QrcodeSupportedFormats.CODE_39,
-              Html5QrcodeSupportedFormats.UPC_A,
-              Html5QrcodeSupportedFormats.UPC_E,
+              Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.EAN_8,
+              Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.CODE_39,
+              Html5QrcodeSupportedFormats.UPC_A, Html5QrcodeSupportedFormats.UPC_E,
               Html5QrcodeSupportedFormats.QR_CODE
             ]
           },
-          onScanSuccess,
-          null
-        ).catch(e => {
+          onScanSuccess, null
+        ).catch(() => {
           document.getElementById('reader').innerHTML =
             '<p style="color:var(--red);padding:20px;text-align:center">Нет доступа к камере</p>';
         });
