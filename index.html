@@ -2,90 +2,165 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Сканер товаров</title>
   <link rel="manifest" href="./manifest.json">
-  <meta name="theme-color" content="#1a1a2e">
+  <meta name="theme-color" content="#0a0a0a">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0a;
+      --card: #141414;
+      --card2: #1c1c1c;
+      --border: rgba(255,255,255,0.07);
+      --green: #00e676;
+      --blue: #448aff;
+      --red: #ff5252;
+      --text: #ffffff;
+      --muted: #555;
+      --r: 18px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-      background: #1a1a2e;
-      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+      background: var(--bg);
+      color: var(--text);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 20px;
+      padding: 24px 16px 40px;
+      gap: 16px;
     }
-    h1 { font-size: 22px; margin-bottom: 8px; }
-    .subtitle { color: #888; font-size: 14px; margin-bottom: 10px; text-align: center; }
-    #reader { width: 100%; max-width: 400px; border-radius: 12px; overflow: hidden; }
-    #result {
-      margin-top: 20px; padding: 20px; background: #16213e;
-      border-radius: 12px; width: 100%; max-width: 400px;
-      text-align: center; min-height: 80px;
+
+    /* ── HEADER ── */
+    .header { text-align: center; }
+    .header h1 {
+      font-size: 20px; font-weight: 700; letter-spacing: -0.5px;
     }
-    #result.found { background: #0a3d2a; border: 2px solid #2ecc71; }
-    #result.notfound { background: #3d0a0a; border: 2px solid #e74c3c; }
-    .barcode-number {
-      font-size: 24px; font-weight: bold;
-      font-family: monospace; color: #2ecc71; margin-bottom: 12px;
-    }
-    .status { font-size: 16px; margin-bottom: 12px; }
-    .waiting { color: #888; font-size: 16px; }
-    .btn-row {
-      display: flex; gap: 10px; justify-content: center;
-      flex-wrap: wrap; margin-top: 10px;
-    }
-    .open-btn {
-      display: inline-block; padding: 14px 22px; background: #2ecc71;
-      color: #000; font-size: 16px; font-weight: bold;
-      border-radius: 10px; text-decoration: none;
-    }
-    .open-btn-ru {
-      display: inline-block; padding: 14px 22px; background: #3498db;
-      color: #fff; font-size: 16px; font-weight: bold;
-      border-radius: 10px; text-decoration: none;
-    }
-    .scan-again {
-      display: inline-block; padding: 10px 20px; background: #16213e;
-      color: #fff; font-size: 14px; border: 1px solid #444;
-      border-radius: 8px; margin-top: 12px; cursor: pointer;
-    }
+    .header p { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+    /* ── STATUS BAR ── */
     .status-bar {
-      display: flex; gap: 10px; margin-bottom: 15px;
-      font-size: 12px; align-items: center;
+      display: flex; gap: 8px; align-items: center; font-size: 12px;
     }
-    .db-status { color: #555; }
-    .db-status.ok { color: #2ecc71; }
-    .db-status.err { color: #e74c3c; }
-    .net-status { padding: 2px 8px; border-radius: 4px; font-size: 11px; }
-    .net-status.online { background: #0a3d2a; color: #2ecc71; }
-    .net-status.offline { background: #3d2a0a; color: #f39c12; }
+    .db-status { color: var(--muted); }
+    .db-status.ok { color: var(--green); }
+    .db-status.err { color: var(--red); }
+    .net-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--muted);
+    }
+    .net-dot.online { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .net-dot.offline { background: #f39c12; }
+
+    /* ── MODE TOGGLE ── */
+    .mode-wrap {
+      width: 100%; max-width: 400px;
+    }
+    .mode-label-text {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+      color: var(--muted); margin-bottom: 8px; text-align: center;
+    }
+    .mode-toggle {
+      display: grid; grid-template-columns: 1fr 1fr;
+      background: var(--card); border-radius: var(--r);
+      border: 1px solid var(--border); padding: 4px; gap: 4px;
+    }
+    .mode-btn {
+      padding: 12px; border: none; border-radius: 14px;
+      font-size: 15px; font-weight: 600; cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+      background: transparent; color: var(--muted);
+      letter-spacing: -0.2px;
+    }
+    .mode-btn.active-orig {
+      background: var(--green); color: #000;
+    }
+    .mode-btn.active-ru {
+      background: var(--blue); color: #fff;
+    }
+
+    /* ── SCANNER ── */
+    #reader {
+      width: 100%; max-width: 400px;
+      border-radius: var(--r); overflow: hidden;
+      border: 1px solid var(--border);
+    }
     #reader select, #reader button {
-      background: #16213e !important; color: #fff !important;
-      border: 1px solid #333 !important; border-radius: 6px !important;
-      padding: 8px 12px !important;
+      background: var(--card2) !important; color: var(--text) !important;
+      border: 1px solid var(--border) !important; border-radius: 10px !important;
+      padding: 8px 12px !important; font-size: 14px !important;
     }
+    #reader img { display: none !important; }
+
+    /* ── RESULT ── */
+    #result {
+      width: 100%; max-width: 400px; padding: 22px 20px;
+      background: var(--card); border-radius: var(--r);
+      border: 1px solid var(--border); text-align: center;
+      min-height: 90px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 4px;
+    }
+    #result.found { border-color: rgba(0,230,118,0.3); }
+    #result.notfound { border-color: rgba(255,82,82,0.3); }
+    .waiting { color: var(--muted); font-size: 15px; }
+    .barcode-num {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 20px; font-weight: 700; letter-spacing: 1px;
+      color: var(--green); margin-bottom: 6px;
+    }
+    .result-status { font-size: 14px; color: var(--muted); margin-bottom: 14px; }
+
+    .btn-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+    .btn-orig, .btn-ru {
+      padding: 13px 24px; border-radius: 12px;
+      font-size: 15px; font-weight: 700;
+      text-decoration: none; letter-spacing: -0.2px;
+      transition: opacity 0.15s;
+    }
+    .btn-orig:active, .btn-ru:active { opacity: 0.75; }
+    .btn-orig { background: var(--green); color: #000; }
+    .btn-ru   { background: var(--blue);  color: #fff; }
+
+    .btn-again {
+      margin-top: 12px; padding: 10px 20px;
+      background: var(--card2); color: var(--muted);
+      font-size: 13px; border: 1px solid var(--border);
+      border-radius: 10px; cursor: pointer;
+      transition: color 0.15s;
+    }
+    .btn-again:active { color: var(--text); }
+
+    /* ── INSTALL ── */
     .install-btn {
-      display: none; padding: 10px 20px; background: #3498db;
-      color: #fff; font-size: 14px; border: none;
-      border-radius: 8px; margin-bottom: 15px; cursor: pointer;
+      display: none; padding: 12px 24px; background: var(--card);
+      color: var(--text); font-size: 14px; font-weight: 600;
+      border: 1px solid var(--border); border-radius: 12px; cursor: pointer;
     }
   </style>
 </head>
 <body>
 
-  <h1>📷 Сканер товаров</h1>
-  <p class="subtitle">Наведи камеру на штрихкод товара</p>
+  <div class="header">
+    <h1>Сканер товаров</h1>
+    <p>Наведи камеру на штрихкод</p>
+  </div>
 
   <div class="status-bar">
     <span class="db-status" id="dbStatus">Загрузка базы...</span>
-    <span class="net-status" id="netStatus"></span>
+    <span class="net-dot" id="netDot"></span>
+    <span id="netText" style="font-size:12px;color:var(--muted)"></span>
+  </div>
+
+  <div class="mode-wrap">
+    <div class="mode-label-text">Открывать как</div>
+    <div class="mode-toggle">
+      <button class="mode-btn active-orig" id="btn-orig" onclick="setMode('original')">🌐 Оригинал</button>
+      <button class="mode-btn" id="btn-ru" onclick="setMode('russian')">🇷🇺 Русский</button>
+    </div>
   </div>
 
   <button class="install-btn" id="installBtn">Установить приложение</button>
@@ -97,35 +172,30 @@
   </div>
 
   <script>
-    // =============================================
-    // РЕГИСТРАЦИЯ SERVICE WORKER
-    // =============================================
+    // ── SERVICE WORKER ──
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js')
-        .then(() => console.log('SW зарегистрирован'))
-        .catch(err => console.error('SW ошибка:', err));
+      navigator.serviceWorker.register('./sw.js?v=4')
+        .then(() => console.log('SW ok'))
+        .catch(e => console.error('SW err', e));
     }
 
-    // =============================================
-    // СТАТУС СЕТИ
-    // =============================================
-    function updateNetStatus() {
-      const el = document.getElementById('netStatus');
+    // ── СЕТЬ ──
+    function updateNet() {
+      const dot = document.getElementById('netDot');
+      const txt = document.getElementById('netText');
       if (navigator.onLine) {
-        el.className = 'net-status online';
-        el.textContent = 'онлайн';
+        dot.className = 'net-dot online';
+        txt.textContent = 'онлайн';
       } else {
-        el.className = 'net-status offline';
-        el.textContent = 'офлайн';
+        dot.className = 'net-dot offline';
+        txt.textContent = 'офлайн';
       }
     }
-    updateNetStatus();
-    window.addEventListener('online', updateNetStatus);
-    window.addEventListener('offline', updateNetStatus);
+    updateNet();
+    window.addEventListener('online', updateNet);
+    window.addEventListener('offline', updateNet);
 
-    // =============================================
-    // КНОПКА УСТАНОВКИ PWA
-    // =============================================
+    // ── PWA INSTALL ──
     let deferredPrompt;
     window.addEventListener('beforeinstallprompt', e => {
       e.preventDefault();
@@ -142,16 +212,22 @@
       }
     });
 
-    // =============================================
-    // ЗАГРУЗКА БАЗЫ ИЗ GOOGLE SHEETS CSV
-    // =============================================
-    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTpRYWo3PdDGmKTiUW97_zx1BcbtPYZKy0VeifwKLBA0J8oO-DCNyfx3Fbgh81psypZQ6bIG3lsNtmS/pub?gid=0&single=true&output=csv';
+    // ── РЕЖИМ ──
+    let currentMode = 'original';
+    function setMode(m) {
+      currentMode = m;
+      const bo = document.getElementById('btn-orig');
+      const br = document.getElementById('btn-ru');
+      bo.className = 'mode-btn' + (m === 'original' ? ' active-orig' : '');
+      br.className = 'mode-btn' + (m === 'russian'  ? ' active-ru'   : '');
+    }
 
+    // ── CSV ──
+    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTpRYWo3PdDGmKTiUW97_zx1BcbtPYZKy0VeifwKLBA0J8oO-DCNyfx3Fbgh81psypZQ6bIG3lsNtmS/pub?gid=0&single=true&output=csv';
     let products = {};
 
     function parseCSVLine(line) {
-      const fields = [];
-      let cur = '', inQ = false;
+      const fields = []; let cur = '', inQ = false;
       for (let i = 0; i < line.length; i++) {
         const ch = line[i];
         if (ch === '"') { inQ = !inQ; }
@@ -172,21 +248,21 @@
           const parts = parseCSVLine(line);
           if (parts.length < 2) continue;
           const code = parts[0].replace(/"/g, '').trim();
-          const url = parts[1].replace(/"/g, '').trim();
+          const url  = parts[1].replace(/"/g, '').trim();
           if (code && url) products[code] = url;
         }
-        const count = Object.keys(products).length;
-        document.getElementById('dbStatus').className = 'db-status ok';
-        document.getElementById('dbStatus').textContent = 'База: ' + count + ' товаров';
+        const n = Object.keys(products).length;
+        const el = document.getElementById('dbStatus');
+        el.className = 'db-status ok';
+        el.textContent = 'База: ' + n + ' товаров';
       })
       .catch(() => {
-        document.getElementById('dbStatus').className = 'db-status err';
-        document.getElementById('dbStatus').textContent = 'База из кэша';
+        const el = document.getElementById('dbStatus');
+        el.className = 'db-status err';
+        el.textContent = 'База из кэша';
       });
 
-    // =============================================
-    // СКАНЕР
-    // =============================================
+    // ── СКАНЕР ──
     let lastScanned = '';
 
     function onScanSuccess(decodedText) {
@@ -199,33 +275,36 @@
 
       if (rawUrl) {
         const ruUrl = 'https://translate.yandex.ru/translate?url=' + encodeURIComponent(rawUrl) + '&lang=auto-ru';
+        const openUrl = currentMode === 'russian' ? ruUrl : rawUrl;
+
         result.className = 'found';
         result.innerHTML =
-          '<div class="barcode-number">' + decodedText + '</div>' +
-          '<div class="status">Товар найден</div>' +
+          '<div class="barcode-num">' + decodedText + '</div>' +
+          '<div class="result-status">Товар найден — выбери вариант</div>' +
           '<div class="btn-row">' +
-            '<a class="open-btn" href="' + rawUrl + '" target="_blank">Оригинал</a>' +
-            '<a class="open-btn-ru" href="' + ruUrl + '" target="_blank">Русский</a>' +
+            '<a class="btn-orig" href="' + rawUrl + '" target="_blank">🌐 Оригинал</a>' +
+            '<a class="btn-ru"   href="' + ruUrl   + '" target="_blank">🇷🇺 Русский</a>' +
           '</div>' +
-          '<div><span class="scan-again" onclick="resetScan()">Сканировать ещё</span></div>';
+          '<button class="btn-again" onclick="resetScan()">Сканировать ещё</button>';
       } else {
         result.className = 'notfound';
         result.innerHTML =
-          '<div class="barcode-number">' + decodedText + '</div>' +
-          '<div class="status">Товар не найден в базе</div>' +
-          '<div><span class="scan-again" onclick="resetScan()">Сканировать ещё</span></div>';
+          '<div class="barcode-num">' + decodedText + '</div>' +
+          '<div class="result-status">Товар не найден в базе</div>' +
+          '<button class="btn-again" onclick="resetScan()">Сканировать ещё</button>';
       }
     }
 
     function resetScan() {
       lastScanned = '';
-      document.getElementById('result').className = '';
-      document.getElementById('result').innerHTML = '<span class="waiting">Ожидаю штрихкод...</span>';
+      const result = document.getElementById('result');
+      result.className = '';
+      result.innerHTML = '<span class="waiting">Ожидаю штрихкод...</span>';
     }
 
     new Html5QrcodeScanner("reader", {
       fps: 10,
-      qrbox: { width: 250, height: 150 },
+      qrbox: { width: 260, height: 160 },
       supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
       rememberLastUsedCamera: true,
       formatsToSupport: [
