@@ -198,7 +198,7 @@
   <script>
     // ── SW ──
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js?v=16')
+      navigator.serviceWorker.register('./sw.js?v=17')
         .then(() => console.log('SW ok'))
         .catch(e => console.error(e));
     }
@@ -340,7 +340,11 @@
       renderHistory();
     }
 
-    // ── TOAST ──
+    // ── ОПРЕДЕЛЕНИЕ ПЛАТФОРМЫ ──
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+    // ── TOAST (только на iOS — на Android window.open работает без него) ──
     let toastTimer = null;
 
     function showToast(code, openUrl, mode) {
@@ -388,53 +392,41 @@
         const ruUrl   = 'https://translate.google.com/translate?sl=auto&tl=ru&u=' + encodeURIComponent(rawUrl);
         const openUrl = currentMode === 'russian' ? ruUrl : rawUrl;
         addToHistory(decodedText, rawUrl, currentMode, openUrl);
-        // Показываем баннер (работает на iOS Safari — это ссылка, тап = жест пользователя)
-        showToast(decodedText, openUrl, currentMode);
-        // Параллельно пробуем auto-open (работает на Android/desktop)
-        window.open(openUrl, '_blank');
+        if (isIOS) {
+          // iOS Safari блокирует window.open из коллбэка — показываем баннер для тапа
+          showToast(decodedText, openUrl, currentMode);
+        } else {
+          // Android/Desktop — открывается автоматически
+          window.open(openUrl, '_blank');
+        }
       } else {
         addToHistory(decodedText, null, currentMode, null);
       }
     }
 
+    const SCAN_CONFIG = {
+      fps: 10,
+      qrbox: { width: 300, height: 130 },
+      formatsToSupport: [
+        Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.EAN_8,
+        Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.CODE_39,
+        Html5QrcodeSupportedFormats.UPC_A, Html5QrcodeSupportedFormats.UPC_E,
+        Html5QrcodeSupportedFormats.QR_CODE
+      ]
+    };
+
     const scanner = new Html5Qrcode("reader");
-    Html5Qrcode.getCameras()
-      .then(cameras => {
-        if (!cameras || !cameras.length) return;
-        const cam = cameras.find(c => /back|rear|environment/i.test(c.label)) || cameras[cameras.length - 1];
-        return scanner.start(
-          { deviceId: { exact: cam.id } },
-          {
-            fps: 10,
-            qrbox: { width: 300, height: 130 },
-            formatsToSupport: [
-              Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.EAN_8,
-              Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.CODE_39,
-              Html5QrcodeSupportedFormats.UPC_A, Html5QrcodeSupportedFormats.UPC_E,
-              Html5QrcodeSupportedFormats.QR_CODE
-            ]
-          },
-          onScanSuccess, null
-        );
-      })
+
+    // facingMode позволяет iOS самому выбрать лучшую заднюю камеру с автофокусом
+    // (не привязываемся к deviceId — на iPhone это часто выбирает неподходящую камеру)
+    scanner.start({ facingMode: { exact: 'environment' } }, SCAN_CONFIG, onScanSuccess, null)
       .catch(() => {
-        scanner.start(
-          { facingMode: 'environment' },
-          {
-            fps: 10,
-            qrbox: { width: 300, height: 130 },
-            formatsToSupport: [
-              Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.EAN_8,
-              Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.CODE_39,
-              Html5QrcodeSupportedFormats.UPC_A, Html5QrcodeSupportedFormats.UPC_E,
-              Html5QrcodeSupportedFormats.QR_CODE
-            ]
-          },
-          onScanSuccess, null
-        ).catch(() => {
-          document.getElementById('reader').innerHTML =
-            '<p style="color:var(--red);padding:20px;text-align:center">Нет доступа к камере</p>';
-        });
+        // Fallback без exact — для устройств где exact не поддерживается
+        scanner.start({ facingMode: 'environment' }, SCAN_CONFIG, onScanSuccess, null)
+          .catch(() => {
+            document.getElementById('reader').innerHTML =
+              '<p style="color:var(--red);padding:20px;text-align:center">Нет доступа к камере</p>';
+          });
       });
   </script>
 
