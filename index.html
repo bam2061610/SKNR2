@@ -62,20 +62,6 @@
     .mode-btn.active-orig { background: var(--green); color: #000; }
     .mode-btn.active-ru   { background: var(--blue);  color: #fff; }
 
-    /* LAST SCAN */
-    .last-scan {
-      width: 100%; max-width: 400px;
-      background: var(--card); border: 1px solid var(--border);
-      border-radius: 12px; padding: 14px 16px;
-      display: flex; align-items: center; justify-content: space-between;
-      min-height: 54px;
-    }
-    .last-scan .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
-    .last-scan .code  { font-family: 'SF Mono', monospace; font-size: 17px; font-weight: 700; color: var(--green); margin-top: 2px; }
-    .last-scan .badge { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 8px; }
-    .badge-ok { background: rgba(0,230,118,0.15); color: var(--green); }
-    .badge-no { background: rgba(255,82,82,0.15);  color: var(--red); }
-    .last-scan .empty { font-size: 13px; color: var(--muted); margin: auto; }
 
     /* SCANNER */
     #reader {
@@ -112,10 +98,6 @@
     </div>
   </div>
 
-  <div class="last-scan" id="lastScan">
-    <span class="empty">Ещё ничего не отсканировано</span>
-  </div>
-
   <button class="install-btn" id="installBtn">Установить приложение</button>
 
   <div id="reader"></div>
@@ -123,7 +105,7 @@
   <script>
     // ── SW ──
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js?v=11')
+      navigator.serviceWorker.register('./sw.js?v=12')
         .then(() => console.log('SW ok'))
         .catch(e => console.error(e));
     }
@@ -207,41 +189,20 @@
       });
 
     // ── СКАНЕР ──
-    let lastScanned = '';
-    let blocked = false;  // блокировка на 5 сек после каждого открытия
+    let blocked = false;
 
     function onScanSuccess(decodedText) {
       if (blocked) return;
-      if (decodedText === lastScanned) return;
-      lastScanned = decodedText;
       blocked = true;
       setTimeout(() => { blocked = false; }, 5000);
       if (navigator.vibrate) navigator.vibrate(80);
 
       const rawUrl = products[decodedText];
-      const box    = document.getElementById('lastScan');
 
       if (rawUrl) {
         const ruUrl   = 'https://translate.google.com/translate?sl=auto&tl=ru&u=' + encodeURIComponent(rawUrl);
         const openUrl = currentMode === 'russian' ? ruUrl : rawUrl;
-        const modeTag = currentMode === 'russian' ? '🇷🇺 рус' : '🌐 ориг';
-
-        box.innerHTML =
-          '<div>' +
-            '<div class="label">Открыто</div>' +
-            '<div class="code">' + decodedText + '</div>' +
-          '</div>' +
-          '<span class="badge badge-ok">' + modeTag + '</span>';
-
-        // Автооткрытие — один раз, повтор исключён т.к. lastScanned не сбрасывается
         window.open(openUrl, '_blank');
-      } else {
-        box.innerHTML =
-          '<div>' +
-            '<div class="label">Не найден</div>' +
-            '<div class="code" style="color:var(--red)">' + decodedText + '</div>' +
-          '</div>' +
-          '<span class="badge badge-no">нет в базе</span>';
       }
     }
 
