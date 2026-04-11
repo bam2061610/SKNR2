@@ -152,7 +152,7 @@
   <script>
     // ── SW ──
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js?v=13')
+      navigator.serviceWorker.register('./sw.js?v=14')
         .then(() => console.log('SW ok'))
         .catch(e => console.error(e));
     }
@@ -282,12 +282,19 @@
     }
 
     // ── СКАНЕР ──
-    let blocked = false;
+    let lastScanned = '';
+
+    // Когда возвращаемся на вкладку — сбрасываем через 2с
+    // (даём камере время перефокусироваться, чтобы не подхватить старый кадр)
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        setTimeout(() => { lastScanned = ''; }, 2000);
+      }
+    });
 
     function onScanSuccess(decodedText) {
-      if (blocked) return;
-      blocked = true;
-      setTimeout(() => { blocked = false; }, 5000);
+      if (decodedText === lastScanned) return;  // тот же код — игнор
+      lastScanned = decodedText;
       if (navigator.vibrate) navigator.vibrate(80);
 
       const rawUrl = products[decodedText];
