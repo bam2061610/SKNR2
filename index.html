@@ -62,6 +62,37 @@
     .mode-btn.active-orig { background: var(--green); color: #000; }
     .mode-btn.active-ru   { background: var(--blue);  color: #fff; }
 
+    /* TOAST — баннер после скана (для iOS Safari) */
+    .toast {
+      position: fixed; top: 16px; left: 50%; transform: translateX(-50%) translateY(-120px);
+      width: calc(100% - 32px); max-width: 400px;
+      border-radius: 16px; overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+      z-index: 999;
+      transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast a {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 18px; text-decoration: none; color: #000;
+    }
+    .toast.orig a { background: var(--green); }
+    .toast.ru   a { background: var(--blue); color: #fff; }
+    .toast-left {}
+    .toast-label { font-size: 11px; font-weight: 600; opacity: 0.65; text-transform: uppercase; letter-spacing: 0.8px; }
+    .toast-code  { font-family: 'SF Mono', monospace; font-size: 18px; font-weight: 800; margin-top: 2px; letter-spacing: 0.5px; }
+    .toast-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+    .toast-action { font-size: 14px; font-weight: 700; opacity: 0.8; }
+    .toast-arrow  { font-size: 22px; }
+    .toast-close {
+      display: block; width: 100%; padding: 10px;
+      text-align: center; font-size: 12px; cursor: pointer;
+      background: rgba(0,0,0,0.15); border: none; color: inherit;
+      font-weight: 600; letter-spacing: 0.3px;
+    }
+    .toast.orig .toast-close { color: rgba(0,0,0,0.5); }
+    .toast.ru   .toast-close { color: rgba(255,255,255,0.5); }
+
     /* SCANNER */
     #reader {
       width: 100%; max-width: 400px;
@@ -130,6 +161,21 @@
     <span id="netText" style="font-size:12px;color:var(--muted)"></span>
   </div>
 
+  <!-- TOAST — появляется после скана, тапнуть чтобы открыть в Safari -->
+  <div class="toast" id="toast">
+    <a id="toastLink" href="#" target="_blank" rel="noopener noreferrer">
+      <div class="toast-left">
+        <div class="toast-label" id="toastLabel">Найден</div>
+        <div class="toast-code"  id="toastCode"></div>
+      </div>
+      <div class="toast-right">
+        <div class="toast-action">Открыть</div>
+        <div class="toast-arrow">↗</div>
+      </div>
+    </a>
+    <button class="toast-close" onclick="dismissToast()">закрыть</button>
+  </div>
+
   <div class="mode-wrap">
     <div class="mode-toggle">
       <button class="mode-btn active-orig" id="btn-orig" onclick="setMode('original')">🌐 Оригинал</button>
@@ -152,7 +198,7 @@
   <script>
     // ── SW ──
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js?v=14')
+      navigator.serviceWorker.register('./sw.js?v=15')
         .then(() => console.log('SW ok'))
         .catch(e => console.error(e));
     }
@@ -281,6 +327,32 @@
       renderHistory();
     }
 
+    // ── TOAST ──
+    let toastTimer = null;
+
+    function showToast(code, openUrl, mode) {
+      const toast = document.getElementById('toast');
+      const link  = document.getElementById('toastLink');
+      document.getElementById('toastLabel').textContent = mode === 'russian' ? '🇷🇺 Русский' : '🌐 Оригинал';
+      document.getElementById('toastCode').textContent  = code;
+      link.href = openUrl;
+      toast.className = 'toast ' + (mode === 'russian' ? 'ru' : 'orig');
+      // показываем
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => { toast.classList.add('show'); });
+      });
+      // закрываем через 8 сек если не тапнули
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(dismissToast, 8000);
+      // Закрываем сразу после тапа по ссылке
+      link.onclick = () => { setTimeout(dismissToast, 300); };
+    }
+
+    function dismissToast() {
+      clearTimeout(toastTimer);
+      document.getElementById('toast').classList.remove('show');
+    }
+
     // ── СКАНЕР ──
     let lastScanned = '';
 
@@ -303,6 +375,9 @@
         const ruUrl   = 'https://translate.google.com/translate?sl=auto&tl=ru&u=' + encodeURIComponent(rawUrl);
         const openUrl = currentMode === 'russian' ? ruUrl : rawUrl;
         addToHistory(decodedText, rawUrl, currentMode, openUrl);
+        // Показываем баннер (работает на iOS Safari — это ссылка, тап = жест пользователя)
+        showToast(decodedText, openUrl, currentMode);
+        // Параллельно пробуем auto-open (работает на Android/desktop)
         window.open(openUrl, '_blank');
       } else {
         addToHistory(decodedText, null, currentMode, null);
