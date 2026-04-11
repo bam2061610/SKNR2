@@ -107,6 +107,26 @@
       border: 1px solid var(--border); border-radius: 12px; cursor: pointer;
     }
 
+    /* ОВЕРЛЕЙ загрузки базы */
+    .db-overlay {
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,0.75);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 10px; border-radius: var(--r);
+      z-index: 10;
+    }
+    .db-overlay .spinner {
+      width: 28px; height: 28px; border-radius: 50%;
+      border: 3px solid rgba(255,255,255,0.15);
+      border-top-color: var(--green);
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .db-overlay .msg { font-size: 14px; font-weight: 600; color: #fff; }
+    .db-overlay .sub { font-size: 12px; color: var(--muted); }
+    .reader-wrap { position: relative; width: 100%; max-width: 400px; }
+
     /* ИСТОРИЯ */
     .history-wrap { width: 100%; max-width: 400px; }
     .history-header {
@@ -185,7 +205,14 @@
 
   <button class="install-btn" id="installBtn">Установить приложение</button>
 
-  <div id="reader"></div>
+  <div class="reader-wrap">
+    <div class="db-overlay" id="dbOverlay">
+      <div class="spinner"></div>
+      <div class="msg">Загрузка базы...</div>
+      <div class="sub">сканирование заблокировано</div>
+    </div>
+    <div id="reader"></div>
+  </div>
 
   <div class="history-wrap" id="historyWrap" style="display:none">
     <div class="history-header">
@@ -198,7 +225,7 @@
   <script>
     // ── SW ──
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js?v=21')
+      navigator.serviceWorker.register('./sw.js?v=22')
         .then(() => console.log('SW ok'))
         .catch(e => console.error(e));
     }
@@ -272,13 +299,22 @@
       return count;
     }
 
+    let dbReady = false;
+
     function setDbStatus(ok, text) {
       const el = document.getElementById('dbStatus');
       el.className = 'db-status ' + (ok ? 'ok' : 'err');
       el.textContent = text;
     }
 
-    // Пробуем с timestamp (обход кэша), при ошибке — без него
+    function hideOverlay() {
+      const ov = document.getElementById('dbOverlay');
+      ov.style.transition = 'opacity 0.3s';
+      ov.style.opacity = '0';
+      setTimeout(() => ov.remove(), 300);
+      dbReady = true;
+    }
+
     fetch(CSV_BASE + '&t=' + Date.now())
       .catch(() => fetch(CSV_BASE))
       .then(r => {
@@ -288,10 +324,13 @@
       .then(csv => {
         const n = parseCSV(csv);
         setDbStatus(true, 'База: ' + n + ' товаров');
+        hideOverlay();
       })
       .catch(err => {
         setDbStatus(false, 'Ошибка загрузки базы');
         console.error('CSV error:', err);
+        // При ошибке тоже убираем оверлей — пусть сканирует, просто ничего не найдёт
+        hideOverlay();
       });
 
     // ── ИСТОРИЯ ──
@@ -382,6 +421,7 @@
     });
 
     function onScanSuccess(decodedText) {
+      if (!dbReady) return;
       if (decodedText === lastScanned) return;  // тот же код — игнор
       lastScanned = decodedText;
       if (navigator.vibrate) navigator.vibrate(80);
