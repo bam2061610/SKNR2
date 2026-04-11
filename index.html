@@ -66,16 +66,32 @@
     .last-scan {
       width: 100%; max-width: 400px;
       background: var(--card); border: 1px solid var(--border);
-      border-radius: 12px; padding: 12px 16px;
-      display: flex; align-items: center; justify-content: space-between;
+      border-radius: 12px; overflow: hidden;
       min-height: 46px;
     }
+    .last-scan .empty-wrap {
+      padding: 12px 16px; display: flex; align-items: center; justify-content: center;
+    }
+    .last-scan .empty { font-size: 13px; color: var(--muted); }
+    /* Когда найден — вся карточка становится большой ссылкой */
+    .last-scan a.tap-link {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 16px; text-decoration: none; color: inherit;
+      transition: background 0.15s;
+    }
+    .last-scan a.tap-link:active { background: rgba(255,255,255,0.05); }
     .last-scan .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
-    .last-scan .code  { font-family: 'SF Mono', monospace; font-size: 17px; font-weight: 700; color: var(--green); }
+    .last-scan .code  { font-family: 'SF Mono', monospace; font-size: 17px; font-weight: 700; color: var(--green); margin-top: 2px; }
+    .last-scan .right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
     .last-scan .badge { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 8px; }
     .badge-ok { background: rgba(0,230,118,0.15); color: var(--green); }
     .badge-no { background: rgba(255,82,82,0.15);  color: var(--red); }
-    .last-scan .empty { font-size: 13px; color: var(--muted); margin: auto; }
+    .tap-hint { font-size: 11px; color: var(--muted); }
+    /* не найден */
+    .last-scan .notfound-wrap {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 16px;
+    }
 
     /* SCANNER — только видео, без лишних отступов */
     #reader {
@@ -118,7 +134,7 @@
   </div>
 
   <div class="last-scan" id="lastScan">
-    <span class="empty">Ещё ничего не отсканировано</span>
+    <div class="empty-wrap"><span class="empty">Ещё ничего не отсканировано</span></div>
   </div>
 
   <button class="install-btn" id="installBtn">Установить приложение</button>
@@ -224,24 +240,32 @@
       const box    = document.getElementById('lastScan');
 
       if (rawUrl) {
-        const ruUrl   = 'https://translate.yandex.ru/translate?url=' + encodeURIComponent(rawUrl) + '&lang=auto-ru';
+        // Google Translate — корректно сохраняет картинки в отличие от Яндекса
+        const ruUrl   = 'https://translate.google.com/translate?sl=auto&tl=ru&u=' + encodeURIComponent(rawUrl);
         const openUrl = currentMode === 'russian' ? ruUrl : rawUrl;
+        const modeTag = currentMode === 'russian' ? '🇷🇺 рус' : '🌐 ориг';
 
+        // Вся карточка — кликабельная ссылка (открывается в новой вкладке по тапу)
         box.innerHTML =
-          '<div>' +
-            '<div class="label">Найден</div>' +
-            '<div class="code">' + decodedText + '</div>' +
-          '</div>' +
-          '<span class="badge badge-ok">' + (currentMode === 'russian' ? '🇷🇺 рус' : '🌐 ориг') + '</span>';
-
-        window.open(openUrl, '_blank');
+          '<a class="tap-link" href="' + openUrl + '" target="_blank" rel="noopener noreferrer">' +
+            '<div>' +
+              '<div class="label">Найден — тапни чтобы открыть</div>' +
+              '<div class="code">' + decodedText + '</div>' +
+            '</div>' +
+            '<div class="right">' +
+              '<span class="badge badge-ok">' + modeTag + '</span>' +
+              '<span class="tap-hint">↗ открыть</span>' +
+            '</div>' +
+          '</a>';
       } else {
         box.innerHTML =
-          '<div>' +
-            '<div class="label">Не найден</div>' +
-            '<div class="code" style="color:var(--red)">' + decodedText + '</div>' +
-          '</div>' +
-          '<span class="badge badge-no">нет в базе</span>';
+          '<div class="notfound-wrap">' +
+            '<div>' +
+              '<div class="label">Не найден</div>' +
+              '<div class="code" style="color:var(--red)">' + decodedText + '</div>' +
+            '</div>' +
+            '<span class="badge badge-no">нет в базе</span>' +
+          '</div>';
       }
       // НЕТ авто-сброса — повторное открытие исключено
     }
