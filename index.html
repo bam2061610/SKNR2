@@ -198,7 +198,7 @@
   <script>
     // ── SW ──
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js?v=15')
+      navigator.serviceWorker.register('./sw.js?v=16')
         .then(() => console.log('SW ok'))
         .catch(e => console.error(e));
     }
@@ -257,28 +257,41 @@
       return fields;
     }
 
-    fetch(CSV_BASE + '&t=' + Date.now(), { cache: 'no-store' })
-      .then(r => r.text())
-      .then(csv => {
-        const lines = csv.split('\n');
-        for (let i = 1; i < lines.length; i++) {
-          const line = lines[i].trim();
-          if (!line) continue;
-          const parts = parseCSVLine(line);
-          if (parts.length < 2) continue;
-          const code = parts[0].replace(/"/g, '').trim();
-          const url  = parts[1].replace(/"/g, '').trim();
-          if (code && url) products[code] = url;
-        }
-        const n = Object.keys(products).length;
-        const el = document.getElementById('dbStatus');
-        el.className = 'db-status ok';
-        el.textContent = 'База: ' + n + ' товаров';
+    function parseCSV(csv) {
+      const lines = csv.split('\n');
+      let count = 0;
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        const parts = parseCSVLine(line);
+        if (parts.length < 2) continue;
+        const code = parts[0].replace(/"/g, '').trim();
+        const url  = parts[1].replace(/"/g, '').trim();
+        if (code && url) { products[code] = url; count++; }
+      }
+      return count;
+    }
+
+    function setDbStatus(ok, text) {
+      const el = document.getElementById('dbStatus');
+      el.className = 'db-status ' + (ok ? 'ok' : 'err');
+      el.textContent = text;
+    }
+
+    // Пробуем с timestamp (обход кэша), при ошибке — без него
+    fetch(CSV_BASE + '&t=' + Date.now())
+      .catch(() => fetch(CSV_BASE))
+      .then(r => {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.text();
       })
-      .catch(() => {
-        const el = document.getElementById('dbStatus');
-        el.className = 'db-status err';
-        el.textContent = 'Ошибка загрузки базы';
+      .then(csv => {
+        const n = parseCSV(csv);
+        setDbStatus(true, 'База: ' + n + ' товаров');
+      })
+      .catch(err => {
+        setDbStatus(false, 'Ошибка загрузки базы');
+        console.error('CSV error:', err);
       });
 
     // ── ИСТОРИЯ ──
