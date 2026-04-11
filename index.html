@@ -123,7 +123,7 @@
   <script>
     // ── SW ──
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js?v=10')
+      navigator.serviceWorker.register('./sw.js?v=11')
         .then(() => console.log('SW ok'))
         .catch(e => console.error(e));
     }
@@ -207,12 +207,15 @@
       });
 
     // ── СКАНЕР ──
-    // Храним последний код бессрочно — сброс только когда другой код
     let lastScanned = '';
+    let blocked = false;  // блокировка на 5 сек после каждого открытия
 
     function onScanSuccess(decodedText) {
-      if (decodedText === lastScanned) return;  // тот же код — игнор
+      if (blocked) return;
+      if (decodedText === lastScanned) return;
       lastScanned = decodedText;
+      blocked = true;
+      setTimeout(() => { blocked = false; }, 5000);
       if (navigator.vibrate) navigator.vibrate(80);
 
       const rawUrl = products[decodedText];

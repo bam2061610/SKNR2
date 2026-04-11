@@ -1,11 +1,9 @@
-const CACHE_NAME = 'scanner-v10';
+const CACHE_NAME = 'scanner-v11';
 const URLS_TO_CACHE = [
-  './',
-  './index.html',
   'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js'
 ];
 
-// Установка — кэшируем файлы
+// Установка — кэшируем только внешние JS-библиотеки (не index.html)
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => cache.addAll(URLS_TO_CACHE))
@@ -23,11 +21,16 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// Запросы — сначала сеть, потом кэш
 self.addEventListener('fetch', event => {
   const url = event.request.url;
 
-  // CSV из Google Sheets — сеть, а если нет — кэш
+  // index.html — всегда с сети (обновления подтягиваются сразу)
+  if (url.endsWith('/') || url.endsWith('/index.html')) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // CSV из Google Sheets — сеть, если нет — кэш
   if (url.includes('docs.google.com') && url.includes('output=csv')) {
     event.respondWith(
       fetch(event.request)
@@ -41,7 +44,7 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Всё остальное — кэш, а если нет — сеть
+  // Всё остальное — кэш, если нет — сеть
   event.respondWith(
     caches.match(event.request)
       .then(cached => cached || fetch(event.request))
