@@ -198,7 +198,7 @@
   <script>
     // ── SW ──
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js?v=18')
+      navigator.serviceWorker.register('./sw.js?v=19')
         .then(() => console.log('SW ok'))
         .catch(e => console.error(e));
     }
@@ -404,29 +404,36 @@
       }
     }
 
-    const SCAN_CONFIG = {
+    const FORMATS = [
+      Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.EAN_8,
+      Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.CODE_39,
+      Html5QrcodeSupportedFormats.UPC_A, Html5QrcodeSupportedFormats.UPC_E,
+      Html5QrcodeSupportedFormats.QR_CODE
+    ];
+
+    // Android — оригинальный рабочий конфиг
+    const SCAN_CONFIG_ANDROID = {
+      fps: 10,
+      qrbox: { width: 300, height: 130 },
+      formatsToSupport: FORMATS
+    };
+
+    // iOS — нативный BarcodeDetector + больше кадров
+    const SCAN_CONFIG_IOS = {
       fps: 25,
       qrbox: { width: 300, height: 130 },
-      experimentalFeatures: {
-        useBarCodeDetectorIfSupported: true  // нативный API на iOS17+/Android — в разы быстрее
-      },
-      formatsToSupport: [
-        Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.EAN_8,
-        Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.CODE_39,
-        Html5QrcodeSupportedFormats.UPC_A, Html5QrcodeSupportedFormats.UPC_E,
-        Html5QrcodeSupportedFormats.QR_CODE
-      ]
+      experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+      formatsToSupport: FORMATS
     };
+
+    const SCAN_CONFIG   = isIOS ? SCAN_CONFIG_IOS   : SCAN_CONFIG_ANDROID;
+    const CAM_IOS       = { facingMode: { exact: 'environment' }, frameRate: { ideal: 30, min: 15 } };
+    const CAM_ANDROID   = { facingMode: { exact: 'environment' } };
+    const camConstraint = isIOS ? CAM_IOS : CAM_ANDROID;
 
     const scanner = new Html5Qrcode("reader");
 
-    // frameRate: просим камеру давать больше кадров в секунду (iOS по умолчанию скупится)
-    const CAM_CONSTRAINT = {
-      facingMode: { exact: 'environment' },
-      frameRate: { ideal: 30, min: 15 }
-    };
-
-    scanner.start(CAM_CONSTRAINT, SCAN_CONFIG, onScanSuccess, null)
+    scanner.start(camConstraint, SCAN_CONFIG, onScanSuccess, null)
       .catch(() => {
         scanner.start({ facingMode: 'environment' }, SCAN_CONFIG, onScanSuccess, null)
           .catch(() => {
