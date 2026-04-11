@@ -18,7 +18,6 @@
       --green: #00e676;
       --blue: #448aff;
       --red: #ff5252;
-      --text: #ffffff;
       --muted: #555;
       --r: 18px;
     }
@@ -26,7 +25,7 @@
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
       background: var(--bg);
-      color: var(--text);
+      color: #fff;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
@@ -35,25 +34,19 @@
       gap: 12px;
     }
 
-    /* ── HEADER ── */
     .header { text-align: center; }
     .header h1 { font-size: 18px; font-weight: 700; letter-spacing: -0.5px; }
     .header p  { font-size: 12px; color: var(--muted); margin-top: 3px; }
 
-    /* ── STATUS ── */
-    .status-bar {
-      display: flex; gap: 8px; align-items: center; font-size: 12px;
-    }
-    .db-status { color: var(--muted); }
+    .status-bar { display: flex; gap: 8px; align-items: center; font-size: 12px; }
+    .db-status  { color: var(--muted); }
     .db-status.ok  { color: var(--green); }
     .db-status.err { color: var(--red); }
-    .net-dot {
-      width: 6px; height: 6px; border-radius: 50%; background: var(--muted);
-    }
+    .net-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
     .net-dot.online  { background: var(--green); box-shadow: 0 0 5px var(--green); }
     .net-dot.offline { background: #f39c12; }
 
-    /* ── MODE TOGGLE ── */
+    /* MODE TOGGLE */
     .mode-wrap { width: 100%; max-width: 400px; }
     .mode-toggle {
       display: grid; grid-template-columns: 1fr 1fr;
@@ -69,7 +62,7 @@
     .mode-btn.active-orig { background: var(--green); color: #000; }
     .mode-btn.active-ru   { background: var(--blue);  color: #fff; }
 
-    /* ── LAST SCAN BADGE ── */
+    /* LAST SCAN */
     .last-scan {
       width: 100%; max-width: 400px;
       background: var(--card); border: 1px solid var(--border);
@@ -79,31 +72,27 @@
     }
     .last-scan .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
     .last-scan .code  { font-family: 'SF Mono', monospace; font-size: 17px; font-weight: 700; color: var(--green); }
-    .last-scan .badge {
-      font-size: 11px; font-weight: 600; padding: 3px 9px;
-      border-radius: 8px; letter-spacing: 0.3px;
-    }
-    .badge-ok  { background: rgba(0,230,118,0.15); color: var(--green); }
-    .badge-no  { background: rgba(255,82,82,0.15);  color: var(--red); }
+    .last-scan .badge { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 8px; }
+    .badge-ok { background: rgba(0,230,118,0.15); color: var(--green); }
+    .badge-no { background: rgba(255,82,82,0.15);  color: var(--red); }
     .last-scan .empty { font-size: 13px; color: var(--muted); margin: auto; }
 
-    /* ── SCANNER ── */
+    /* SCANNER — только видео, без лишних отступов */
     #reader {
       width: 100%; max-width: 400px;
       border-radius: var(--r); overflow: hidden;
       border: 1px solid var(--border);
+      /* убираем белые поля которые добавляет библиотека */
+      background: #000;
     }
-    #reader select, #reader button {
-      background: var(--card2) !important; color: var(--text) !important;
-      border: 1px solid var(--border) !important; border-radius: 10px !important;
-      padding: 8px 12px !important; font-size: 14px !important;
-    }
-    #reader img { display: none !important; }
+    #reader video { display: block; width: 100% !important; height: auto !important; }
+    /* скрываем служебные элементы библиотеки */
+    #reader > div > div:first-child { display: none !important; }  /* заголовок/статус */
+    #reader img[alt="Info icon"]    { display: none !important; }
 
-    /* ── INSTALL ── */
     .install-btn {
       display: none; padding: 11px 22px; background: var(--card);
-      color: var(--text); font-size: 14px; font-weight: 600;
+      color: #fff; font-size: 14px; font-weight: 600;
       border: 1px solid var(--border); border-radius: 12px; cursor: pointer;
     }
   </style>
@@ -121,7 +110,6 @@
     <span id="netText" style="font-size:12px;color:var(--muted)"></span>
   </div>
 
-  <!-- ПЕРЕКЛЮЧАТЕЛЬ РЕЖИМА -->
   <div class="mode-wrap">
     <div class="mode-toggle">
       <button class="mode-btn active-orig" id="btn-orig" onclick="setMode('original')">🌐 Оригинал</button>
@@ -129,7 +117,6 @@
     </div>
   </div>
 
-  <!-- ПОСЛЕДНЕЕ СКАНИРОВАНИЕ (вверху) -->
   <div class="last-scan" id="lastScan">
     <span class="empty">Ещё ничего не отсканировано</span>
   </div>
@@ -139,11 +126,11 @@
   <div id="reader"></div>
 
   <script>
-    // ── SERVICE WORKER ──
+    // ── SW ──
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js?v=5')
+      navigator.serviceWorker.register('./sw.js?v=6')
         .then(() => console.log('SW ok'))
-        .catch(e => console.error('SW err', e));
+        .catch(e => console.error(e));
     }
 
     // ── СЕТЬ ──
@@ -160,7 +147,7 @@
     window.addEventListener('online', updateNet);
     window.addEventListener('offline', updateNet);
 
-    // ── PWA INSTALL ──
+    // ── INSTALL ──
     let deferredPrompt;
     window.addEventListener('beforeinstallprompt', e => {
       e.preventDefault(); deferredPrompt = e;
@@ -225,11 +212,11 @@
       });
 
     // ── СКАНЕР ──
+    // Храним последний код бессрочно — сброс только когда другой код
     let lastScanned = '';
-    let resetTimer = null;
 
     function onScanSuccess(decodedText) {
-      if (decodedText === lastScanned) return;
+      if (decodedText === lastScanned) return;  // тот же код — игнор
       lastScanned = decodedText;
       if (navigator.vibrate) navigator.vibrate(80);
 
@@ -237,7 +224,7 @@
       const box    = document.getElementById('lastScan');
 
       if (rawUrl) {
-        const ruUrl  = 'https://translate.yandex.ru/translate?url=' + encodeURIComponent(rawUrl) + '&lang=auto-ru';
+        const ruUrl   = 'https://translate.yandex.ru/translate?url=' + encodeURIComponent(rawUrl) + '&lang=auto-ru';
         const openUrl = currentMode === 'russian' ? ruUrl : rawUrl;
 
         box.innerHTML =
@@ -245,7 +232,7 @@
             '<div class="label">Найден</div>' +
             '<div class="code">' + decodedText + '</div>' +
           '</div>' +
-          '<span class="badge badge-ok">' + (currentMode === 'russian' ? 'Рус' : 'Ориг') + '</span>';
+          '<span class="badge badge-ok">' + (currentMode === 'russian' ? '🇷🇺 рус' : '🌐 ориг') + '</span>';
 
         window.open(openUrl, '_blank');
       } else {
@@ -256,27 +243,59 @@
           '</div>' +
           '<span class="badge badge-no">нет в базе</span>';
       }
-
-      // Авто-сброс через 4 сек — готов к следующему скану
-      clearTimeout(resetTimer);
-      resetTimer = setTimeout(() => { lastScanned = ''; }, 4000);
+      // НЕТ авто-сброса — повторное открытие исключено
     }
 
-    new Html5QrcodeScanner("reader", {
-      fps: 10,
-      qrbox: { width: 200, height: 100 },
-      supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
-      rememberLastUsedCamera: true,
-      formatsToSupport: [
-        Html5QrcodeSupportedFormats.EAN_13,
-        Html5QrcodeSupportedFormats.EAN_8,
-        Html5QrcodeSupportedFormats.CODE_128,
-        Html5QrcodeSupportedFormats.CODE_39,
-        Html5QrcodeSupportedFormats.UPC_A,
-        Html5QrcodeSupportedFormats.UPC_E,
-        Html5QrcodeSupportedFormats.QR_CODE
-      ]
-    }).render(onScanSuccess, function(){});
+    // Используем низкоуровневый Html5Qrcode — без лишних кнопок/UI
+    const scanner = new Html5Qrcode("reader");
+    Html5Qrcode.getCameras()
+      .then(cameras => {
+        if (!cameras || !cameras.length) return;
+        // Предпочитаем заднюю камеру
+        const cam = cameras.find(c => /back|rear|environment/i.test(c.label)) || cameras[cameras.length - 1];
+        return scanner.start(
+          { deviceId: { exact: cam.id } },
+          {
+            fps: 10,
+            qrbox: { width: 220, height: 90 },
+            formatsToSupport: [
+              Html5QrcodeSupportedFormats.EAN_13,
+              Html5QrcodeSupportedFormats.EAN_8,
+              Html5QrcodeSupportedFormats.CODE_128,
+              Html5QrcodeSupportedFormats.CODE_39,
+              Html5QrcodeSupportedFormats.UPC_A,
+              Html5QrcodeSupportedFormats.UPC_E,
+              Html5QrcodeSupportedFormats.QR_CODE
+            ]
+          },
+          onScanSuccess,
+          null
+        );
+      })
+      .catch(() => {
+        // Fallback — facingMode environment
+        scanner.start(
+          { facingMode: 'environment' },
+          {
+            fps: 10,
+            qrbox: { width: 220, height: 90 },
+            formatsToSupport: [
+              Html5QrcodeSupportedFormats.EAN_13,
+              Html5QrcodeSupportedFormats.EAN_8,
+              Html5QrcodeSupportedFormats.CODE_128,
+              Html5QrcodeSupportedFormats.CODE_39,
+              Html5QrcodeSupportedFormats.UPC_A,
+              Html5QrcodeSupportedFormats.UPC_E,
+              Html5QrcodeSupportedFormats.QR_CODE
+            ]
+          },
+          onScanSuccess,
+          null
+        ).catch(e => {
+          document.getElementById('reader').innerHTML =
+            '<p style="color:var(--red);padding:20px;text-align:center">Нет доступа к камере</p>';
+        });
+      });
   </script>
 
 </body>
