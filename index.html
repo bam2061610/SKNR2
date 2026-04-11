@@ -198,7 +198,7 @@
   <script>
     // ── SW ──
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js?v=17')
+      navigator.serviceWorker.register('./sw.js?v=18')
         .then(() => console.log('SW ok'))
         .catch(e => console.error(e));
     }
@@ -405,8 +405,11 @@
     }
 
     const SCAN_CONFIG = {
-      fps: 10,
+      fps: 25,
       qrbox: { width: 300, height: 130 },
+      experimentalFeatures: {
+        useBarCodeDetectorIfSupported: true  // нативный API на iOS17+/Android — в разы быстрее
+      },
       formatsToSupport: [
         Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.EAN_8,
         Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.CODE_39,
@@ -417,11 +420,14 @@
 
     const scanner = new Html5Qrcode("reader");
 
-    // facingMode позволяет iOS самому выбрать лучшую заднюю камеру с автофокусом
-    // (не привязываемся к deviceId — на iPhone это часто выбирает неподходящую камеру)
-    scanner.start({ facingMode: { exact: 'environment' } }, SCAN_CONFIG, onScanSuccess, null)
+    // frameRate: просим камеру давать больше кадров в секунду (iOS по умолчанию скупится)
+    const CAM_CONSTRAINT = {
+      facingMode: { exact: 'environment' },
+      frameRate: { ideal: 30, min: 15 }
+    };
+
+    scanner.start(CAM_CONSTRAINT, SCAN_CONFIG, onScanSuccess, null)
       .catch(() => {
-        // Fallback без exact — для устройств где exact не поддерживается
         scanner.start({ facingMode: 'environment' }, SCAN_CONFIG, onScanSuccess, null)
           .catch(() => {
             document.getElementById('reader').innerHTML =
