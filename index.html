@@ -37,10 +37,19 @@
     }
     .status { font-size: 16px; margin-bottom: 12px; }
     .waiting { color: #888; font-size: 16px; }
+    .btn-row {
+      display: flex; gap: 10px; justify-content: center;
+      flex-wrap: wrap; margin-top: 10px;
+    }
     .open-btn {
-      display: inline-block; padding: 14px 28px; background: #2ecc71;
-      color: #000; font-size: 18px; font-weight: bold;
-      border-radius: 10px; text-decoration: none; margin-top: 10px;
+      display: inline-block; padding: 14px 22px; background: #2ecc71;
+      color: #000; font-size: 16px; font-weight: bold;
+      border-radius: 10px; text-decoration: none;
+    }
+    .open-btn-ru {
+      display: inline-block; padding: 14px 22px; background: #3498db;
+      color: #fff; font-size: 16px; font-weight: bold;
+      border-radius: 10px; text-decoration: none;
     }
     .scan-again {
       display: inline-block; padding: 10px 20px; background: #16213e;
@@ -67,41 +76,12 @@
       color: #fff; font-size: 14px; border: none;
       border-radius: 8px; margin-bottom: 15px; cursor: pointer;
     }
-    .mode-toggle {
-      display: flex; gap: 12px; margin-bottom: 14px;
-      background: #16213e; border-radius: 10px; padding: 8px 16px;
-    }
-    .mode-label {
-      display: flex; align-items: center; gap: 6px;
-      cursor: pointer; font-size: 14px; color: #aaa;
-      user-select: none;
-    }
-    .mode-label input[type="radio"] { display: none; }
-    .mode-label span {
-      padding: 5px 14px; border-radius: 7px;
-      border: 1px solid #333; transition: all 0.2s;
-    }
-    .mode-label input[type="radio"]:checked + span {
-      background: #2ecc71; color: #000;
-      border-color: #2ecc71; font-weight: bold;
-    }
   </style>
 </head>
 <body>
 
   <h1>📷 Сканер товаров</h1>
   <p class="subtitle">Наведи камеру на штрихкод товара</p>
-
-  <div class="mode-toggle">
-    <label class="mode-label">
-      <input type="radio" name="mode" value="original" checked>
-      <span>Оригинал</span>
-    </label>
-    <label class="mode-label">
-      <input type="radio" name="mode" value="russian">
-      <span>Русский</span>
-    </label>
-  </div>
 
   <div class="status-bar">
     <span class="db-status" id="dbStatus">Загрузка базы...</span>
@@ -209,18 +189,6 @@
     // =============================================
     let lastScanned = '';
 
-    function getMode() {
-      const checked = document.querySelector('input[name="mode"]:checked');
-      return checked ? checked.value : 'original';
-    }
-
-    function buildOpenUrl(rawUrl) {
-      if (getMode() === 'russian') {
-        return 'https://translate.yandex.ru/translate?url=' + encodeURIComponent(rawUrl) + '&lang=auto-ru';
-      }
-      return rawUrl;
-    }
-
     function onScanSuccess(decodedText) {
       if (decodedText === lastScanned) return;
       lastScanned = decodedText;
@@ -230,15 +198,16 @@
       const rawUrl = products[decodedText];
 
       if (rawUrl) {
-        const openUrl = buildOpenUrl(rawUrl);
-        const modeLabel = getMode() === 'russian' ? 'Открыть (рус.)' : 'Открыть товар';
+        const ruUrl = 'https://translate.yandex.ru/translate?url=' + encodeURIComponent(rawUrl) + '&lang=auto-ru';
         result.className = 'found';
         result.innerHTML =
           '<div class="barcode-number">' + decodedText + '</div>' +
-          '<div class="status">Найден! Открываю...</div>' +
-          '<a class="open-btn" href="' + openUrl + '" target="_blank">' + modeLabel + '</a>' +
+          '<div class="status">Товар найден</div>' +
+          '<div class="btn-row">' +
+            '<a class="open-btn" href="' + rawUrl + '" target="_blank">Оригинал</a>' +
+            '<a class="open-btn-ru" href="' + ruUrl + '" target="_blank">Русский</a>' +
+          '</div>' +
           '<div><span class="scan-again" onclick="resetScan()">Сканировать ещё</span></div>';
-        window.open(openUrl, '_blank');
       } else {
         result.className = 'notfound';
         result.innerHTML =
