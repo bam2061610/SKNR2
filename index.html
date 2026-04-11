@@ -31,57 +31,61 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 24px 16px 40px;
-      gap: 16px;
+      padding: 20px 16px 40px;
+      gap: 12px;
     }
 
     /* ── HEADER ── */
     .header { text-align: center; }
-    .header h1 {
-      font-size: 20px; font-weight: 700; letter-spacing: -0.5px;
-    }
-    .header p { font-size: 13px; color: var(--muted); margin-top: 4px; }
+    .header h1 { font-size: 18px; font-weight: 700; letter-spacing: -0.5px; }
+    .header p  { font-size: 12px; color: var(--muted); margin-top: 3px; }
 
-    /* ── STATUS BAR ── */
+    /* ── STATUS ── */
     .status-bar {
       display: flex; gap: 8px; align-items: center; font-size: 12px;
     }
     .db-status { color: var(--muted); }
-    .db-status.ok { color: var(--green); }
+    .db-status.ok  { color: var(--green); }
     .db-status.err { color: var(--red); }
     .net-dot {
-      width: 7px; height: 7px; border-radius: 50%;
-      background: var(--muted);
+      width: 6px; height: 6px; border-radius: 50%; background: var(--muted);
     }
-    .net-dot.online { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .net-dot.online  { background: var(--green); box-shadow: 0 0 5px var(--green); }
     .net-dot.offline { background: #f39c12; }
 
     /* ── MODE TOGGLE ── */
-    .mode-wrap {
-      width: 100%; max-width: 400px;
-    }
-    .mode-label-text {
-      font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
-      color: var(--muted); margin-bottom: 8px; text-align: center;
-    }
+    .mode-wrap { width: 100%; max-width: 400px; }
     .mode-toggle {
       display: grid; grid-template-columns: 1fr 1fr;
       background: var(--card); border-radius: var(--r);
       border: 1px solid var(--border); padding: 4px; gap: 4px;
     }
     .mode-btn {
-      padding: 12px; border: none; border-radius: 14px;
+      padding: 11px; border: none; border-radius: 14px;
       font-size: 15px; font-weight: 600; cursor: pointer;
       transition: background 0.2s, color 0.2s;
       background: transparent; color: var(--muted);
-      letter-spacing: -0.2px;
     }
-    .mode-btn.active-orig {
-      background: var(--green); color: #000;
+    .mode-btn.active-orig { background: var(--green); color: #000; }
+    .mode-btn.active-ru   { background: var(--blue);  color: #fff; }
+
+    /* ── LAST SCAN BADGE ── */
+    .last-scan {
+      width: 100%; max-width: 400px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 12px 16px;
+      display: flex; align-items: center; justify-content: space-between;
+      min-height: 46px;
     }
-    .mode-btn.active-ru {
-      background: var(--blue); color: #fff;
+    .last-scan .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
+    .last-scan .code  { font-family: 'SF Mono', monospace; font-size: 17px; font-weight: 700; color: var(--green); }
+    .last-scan .badge {
+      font-size: 11px; font-weight: 600; padding: 3px 9px;
+      border-radius: 8px; letter-spacing: 0.3px;
     }
+    .badge-ok  { background: rgba(0,230,118,0.15); color: var(--green); }
+    .badge-no  { background: rgba(255,82,82,0.15);  color: var(--red); }
+    .last-scan .empty { font-size: 13px; color: var(--muted); margin: auto; }
 
     /* ── SCANNER ── */
     #reader {
@@ -96,47 +100,9 @@
     }
     #reader img { display: none !important; }
 
-    /* ── RESULT ── */
-    #result {
-      width: 100%; max-width: 400px; padding: 22px 20px;
-      background: var(--card); border-radius: var(--r);
-      border: 1px solid var(--border); text-align: center;
-      min-height: 90px; display: flex; flex-direction: column;
-      align-items: center; justify-content: center; gap: 4px;
-    }
-    #result.found { border-color: rgba(0,230,118,0.3); }
-    #result.notfound { border-color: rgba(255,82,82,0.3); }
-    .waiting { color: var(--muted); font-size: 15px; }
-    .barcode-num {
-      font-family: 'SF Mono', 'Fira Code', monospace;
-      font-size: 20px; font-weight: 700; letter-spacing: 1px;
-      color: var(--green); margin-bottom: 6px;
-    }
-    .result-status { font-size: 14px; color: var(--muted); margin-bottom: 14px; }
-
-    .btn-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
-    .btn-orig, .btn-ru {
-      padding: 13px 24px; border-radius: 12px;
-      font-size: 15px; font-weight: 700;
-      text-decoration: none; letter-spacing: -0.2px;
-      transition: opacity 0.15s;
-    }
-    .btn-orig:active, .btn-ru:active { opacity: 0.75; }
-    .btn-orig { background: var(--green); color: #000; }
-    .btn-ru   { background: var(--blue);  color: #fff; }
-
-    .btn-again {
-      margin-top: 12px; padding: 10px 20px;
-      background: var(--card2); color: var(--muted);
-      font-size: 13px; border: 1px solid var(--border);
-      border-radius: 10px; cursor: pointer;
-      transition: color 0.15s;
-    }
-    .btn-again:active { color: var(--text); }
-
     /* ── INSTALL ── */
     .install-btn {
-      display: none; padding: 12px 24px; background: var(--card);
+      display: none; padding: 11px 22px; background: var(--card);
       color: var(--text); font-size: 14px; font-weight: 600;
       border: 1px solid var(--border); border-radius: 12px; cursor: pointer;
     }
@@ -155,26 +121,27 @@
     <span id="netText" style="font-size:12px;color:var(--muted)"></span>
   </div>
 
+  <!-- ПЕРЕКЛЮЧАТЕЛЬ РЕЖИМА -->
   <div class="mode-wrap">
-    <div class="mode-label-text">Открывать как</div>
     <div class="mode-toggle">
       <button class="mode-btn active-orig" id="btn-orig" onclick="setMode('original')">🌐 Оригинал</button>
-      <button class="mode-btn" id="btn-ru" onclick="setMode('russian')">🇷🇺 Русский</button>
+      <button class="mode-btn"             id="btn-ru"   onclick="setMode('russian')">🇷🇺 Русский</button>
     </div>
+  </div>
+
+  <!-- ПОСЛЕДНЕЕ СКАНИРОВАНИЕ (вверху) -->
+  <div class="last-scan" id="lastScan">
+    <span class="empty">Ещё ничего не отсканировано</span>
   </div>
 
   <button class="install-btn" id="installBtn">Установить приложение</button>
 
   <div id="reader"></div>
 
-  <div id="result">
-    <span class="waiting">Ожидаю штрихкод...</span>
-  </div>
-
   <script>
     // ── SERVICE WORKER ──
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js?v=4')
+      navigator.serviceWorker.register('./sw.js?v=5')
         .then(() => console.log('SW ok'))
         .catch(e => console.error('SW err', e));
     }
@@ -184,11 +151,9 @@
       const dot = document.getElementById('netDot');
       const txt = document.getElementById('netText');
       if (navigator.onLine) {
-        dot.className = 'net-dot online';
-        txt.textContent = 'онлайн';
+        dot.className = 'net-dot online'; txt.textContent = 'онлайн';
       } else {
-        dot.className = 'net-dot offline';
-        txt.textContent = 'офлайн';
+        dot.className = 'net-dot offline'; txt.textContent = 'офлайн';
       }
     }
     updateNet();
@@ -198,8 +163,7 @@
     // ── PWA INSTALL ──
     let deferredPrompt;
     window.addEventListener('beforeinstallprompt', e => {
-      e.preventDefault();
-      deferredPrompt = e;
+      e.preventDefault(); deferredPrompt = e;
       document.getElementById('installBtn').style.display = 'block';
     });
     document.getElementById('installBtn').addEventListener('click', () => {
@@ -216,10 +180,8 @@
     let currentMode = 'original';
     function setMode(m) {
       currentMode = m;
-      const bo = document.getElementById('btn-orig');
-      const br = document.getElementById('btn-ru');
-      bo.className = 'mode-btn' + (m === 'original' ? ' active-orig' : '');
-      br.className = 'mode-btn' + (m === 'russian'  ? ' active-ru'   : '');
+      document.getElementById('btn-orig').className = 'mode-btn' + (m === 'original' ? ' active-orig' : '');
+      document.getElementById('btn-ru').className   = 'mode-btn' + (m === 'russian'  ? ' active-ru'   : '');
     }
 
     // ── CSV ──
@@ -264,47 +226,45 @@
 
     // ── СКАНЕР ──
     let lastScanned = '';
+    let resetTimer = null;
 
     function onScanSuccess(decodedText) {
       if (decodedText === lastScanned) return;
       lastScanned = decodedText;
-      if (navigator.vibrate) navigator.vibrate(100);
+      if (navigator.vibrate) navigator.vibrate(80);
 
-      const result = document.getElementById('result');
       const rawUrl = products[decodedText];
+      const box    = document.getElementById('lastScan');
 
       if (rawUrl) {
-        const ruUrl = 'https://translate.yandex.ru/translate?url=' + encodeURIComponent(rawUrl) + '&lang=auto-ru';
+        const ruUrl  = 'https://translate.yandex.ru/translate?url=' + encodeURIComponent(rawUrl) + '&lang=auto-ru';
         const openUrl = currentMode === 'russian' ? ruUrl : rawUrl;
 
-        result.className = 'found';
-        result.innerHTML =
-          '<div class="barcode-num">' + decodedText + '</div>' +
-          '<div class="result-status">Товар найден — выбери вариант</div>' +
-          '<div class="btn-row">' +
-            '<a class="btn-orig" href="' + rawUrl + '" target="_blank">🌐 Оригинал</a>' +
-            '<a class="btn-ru"   href="' + ruUrl   + '" target="_blank">🇷🇺 Русский</a>' +
+        box.innerHTML =
+          '<div>' +
+            '<div class="label">Найден</div>' +
+            '<div class="code">' + decodedText + '</div>' +
           '</div>' +
-          '<button class="btn-again" onclick="resetScan()">Сканировать ещё</button>';
-      } else {
-        result.className = 'notfound';
-        result.innerHTML =
-          '<div class="barcode-num">' + decodedText + '</div>' +
-          '<div class="result-status">Товар не найден в базе</div>' +
-          '<button class="btn-again" onclick="resetScan()">Сканировать ещё</button>';
-      }
-    }
+          '<span class="badge badge-ok">' + (currentMode === 'russian' ? 'Рус' : 'Ориг') + '</span>';
 
-    function resetScan() {
-      lastScanned = '';
-      const result = document.getElementById('result');
-      result.className = '';
-      result.innerHTML = '<span class="waiting">Ожидаю штрихкод...</span>';
+        window.open(openUrl, '_blank');
+      } else {
+        box.innerHTML =
+          '<div>' +
+            '<div class="label">Не найден</div>' +
+            '<div class="code" style="color:var(--red)">' + decodedText + '</div>' +
+          '</div>' +
+          '<span class="badge badge-no">нет в базе</span>';
+      }
+
+      // Авто-сброс через 4 сек — готов к следующему скану
+      clearTimeout(resetTimer);
+      resetTimer = setTimeout(() => { lastScanned = ''; }, 4000);
     }
 
     new Html5QrcodeScanner("reader", {
       fps: 10,
-      qrbox: { width: 260, height: 160 },
+      qrbox: { width: 200, height: 100 },
       supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
       rememberLastUsedCamera: true,
       formatsToSupport: [
