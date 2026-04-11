@@ -198,7 +198,7 @@
   <script>
     // ── SW ──
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js?v=19')
+      navigator.serviceWorker.register('./sw.js?v=20')
         .then(() => console.log('SW ok'))
         .catch(e => console.error(e));
     }
@@ -418,11 +418,10 @@
       formatsToSupport: FORMATS
     };
 
-    // iOS — нативный BarcodeDetector + больше кадров
+    // iOS — больше кадров для скорости детектирования
     const SCAN_CONFIG_IOS = {
       fps: 25,
       qrbox: { width: 300, height: 130 },
-      experimentalFeatures: { useBarCodeDetectorIfSupported: true },
       formatsToSupport: FORMATS
     };
 
