@@ -93,23 +93,14 @@
       padding: 14px 16px;
     }
 
-    /* SCANNER — компактное окошко под штрихкод */
+    /* SCANNER */
     #reader {
       width: 100%; max-width: 400px;
       border-radius: var(--r); overflow: hidden;
       border: 1px solid var(--border);
       background: #000;
-      /* ограничиваем высоту — показываем только зону сканирования */
-      max-height: 140px;
     }
-    #reader video {
-      display: block;
-      width: 100% !important;
-      height: auto !important;
-      object-fit: cover;
-      /* смещаем вверх чтобы окошко кода было по центру */
-      margin-top: -30px;
-    }
+    #reader video { display: block; width: 100% !important; height: auto !important; }
     #reader > div > div:first-child { display: none !important; }
     #reader img[alt="Info icon"]    { display: none !important; }
 
@@ -288,8 +279,7 @@
           { deviceId: { exact: cam.id } },
           {
             fps: 10,
-            qrbox: { width: 260, height: 80 },
-            aspectRatio: 4.0,
+            qrbox: { width: 220, height: 90 },
             formatsToSupport: [
               Html5QrcodeSupportedFormats.EAN_13,
               Html5QrcodeSupportedFormats.EAN_8,
@@ -310,8 +300,7 @@
           { facingMode: 'environment' },
           {
             fps: 10,
-            qrbox: { width: 260, height: 80 },
-            aspectRatio: 4.0,
+            qrbox: { width: 220, height: 90 },
             formatsToSupport: [
               Html5QrcodeSupportedFormats.EAN_13,
               Html5QrcodeSupportedFormats.EAN_8,
