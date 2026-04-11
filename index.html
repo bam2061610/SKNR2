@@ -198,7 +198,7 @@
   <script>
     // ── SW ──
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js?v=20')
+      navigator.serviceWorker.register('./sw.js?v=21')
         .then(() => console.log('SW ok'))
         .catch(e => console.error(e));
     }
@@ -426,9 +426,7 @@
     };
 
     const SCAN_CONFIG   = isIOS ? SCAN_CONFIG_IOS   : SCAN_CONFIG_ANDROID;
-    const CAM_IOS       = { facingMode: { exact: 'environment' }, frameRate: { ideal: 30, min: 15 } };
-    const CAM_ANDROID   = { facingMode: { exact: 'environment' } };
-    const camConstraint = isIOS ? CAM_IOS : CAM_ANDROID;
+    const camConstraint = { facingMode: { exact: 'environment' } };
 
     const scanner = new Html5Qrcode("reader");
 

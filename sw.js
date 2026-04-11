@@ -1,4 +1,4 @@
-const CACHE_NAME = 'scanner-v20';
+const CACHE_NAME = 'scanner-v21';
 const URLS_TO_CACHE = [
   'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js'
 ];
