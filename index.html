@@ -17,6 +17,7 @@
       --border: rgba(255,255,255,0.07);
       --green: #00e676;
       --blue: #448aff;
+      --yandex: #ff6d3b;
       --red: #ff5252;
       --muted: #555;
       --r: 18px;
@@ -46,25 +47,27 @@
     .net-dot.online  { background: var(--green); box-shadow: 0 0 5px var(--green); }
     .net-dot.offline { background: #f39c12; }
 
-    /* MODE TOGGLE */
+    /* MODE TOGGLE — три колонки */
     .mode-wrap { width: 100%; max-width: 400px; }
     .mode-toggle {
-      display: grid; grid-template-columns: 1fr 1fr;
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
       background: var(--card); border-radius: var(--r);
       border: 1px solid var(--border); padding: 4px; gap: 4px;
     }
     .mode-btn {
-      padding: 11px; border: none; border-radius: 14px;
-      font-size: 15px; font-weight: 600; cursor: pointer;
+      padding: 10px 4px; border: none; border-radius: 14px;
+      font-size: 13px; font-weight: 600; cursor: pointer;
       transition: background 0.2s, color 0.2s;
       background: transparent; color: var(--muted);
+      white-space: nowrap;
     }
-    .mode-btn.active-orig { background: var(--green); color: #000; }
-    .mode-btn.active-ru   { background: var(--blue);  color: #fff; }
+    .mode-btn.active-orig   { background: var(--green);  color: #000; }
+    .mode-btn.active-google { background: var(--blue);   color: #fff; }
+    .mode-btn.active-yandex { background: var(--yandex); color: #fff; }
 
-    /* TOAST — баннер после скана (для iOS Safari) */
+    /* TOAST */
     .toast {
-      position: fixed; top: 16px; left: 50%; transform: translateX(-50%) translateY(-120px);
+      position: fixed; top: 16px; left: 50%; transform: translateX(-50%) translateY(-220px);
       width: calc(100% - 32px); max-width: 400px;
       border-radius: 16px; overflow: hidden;
       box-shadow: 0 8px 32px rgba(0,0,0,0.6);
@@ -72,26 +75,43 @@
       transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
     }
     .toast.show { transform: translateX(-50%) translateY(0); }
-    .toast a {
+
+    .toast-main {
       display: flex; align-items: center; justify-content: space-between;
       padding: 16px 18px; text-decoration: none; color: #000;
     }
-    .toast.orig a { background: var(--green); }
-    .toast.ru   a { background: var(--blue); color: #fff; }
-    .toast-left {}
+    .toast.orig   .toast-main { background: var(--green); }
+    .toast.google .toast-main { background: var(--blue);   color: #fff; }
+    .toast.yandex .toast-main { background: var(--yandex); color: #fff; }
+
     .toast-label { font-size: 11px; font-weight: 600; opacity: 0.65; text-transform: uppercase; letter-spacing: 0.8px; }
     .toast-code  { font-family: 'SF Mono', monospace; font-size: 18px; font-weight: 800; margin-top: 2px; letter-spacing: 0.5px; }
     .toast-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
     .toast-action { font-size: 14px; font-weight: 700; opacity: 0.8; }
     .toast-arrow  { font-size: 22px; }
+
+    /* Запасная кнопка — прямой URL (только в режимах перевода) */
+    .toast-fallback {
+      display: none;
+      align-items: center; justify-content: space-between;
+      padding: 10px 18px; text-decoration: none;
+      font-size: 12px; font-weight: 600;
+      border-top: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.65);
+    }
+    .toast.google .toast-fallback,
+    .toast.yandex .toast-fallback { display: flex; }
+    .toast-fallback-arr { font-size: 14px; opacity: 0.5; }
+
     .toast-close {
       display: block; width: 100%; padding: 10px;
       text-align: center; font-size: 12px; cursor: pointer;
       background: rgba(0,0,0,0.15); border: none; color: inherit;
       font-weight: 600; letter-spacing: 0.3px;
     }
-    .toast.orig .toast-close { color: rgba(0,0,0,0.5); }
-    .toast.ru   .toast-close { color: rgba(255,255,255,0.5); }
+    .toast.orig   .toast-close { color: rgba(0,0,0,0.5); }
+    .toast.google .toast-close,
+    .toast.yandex .toast-close { color: rgba(255,255,255,0.5); }
 
     /* SCANNER */
     #reader {
@@ -161,9 +181,10 @@
       font-size: 10px; font-weight: 600; padding: 2px 7px;
       border-radius: 6px; white-space: nowrap;
     }
-    .h-badge.orig { background: rgba(0,230,118,0.12); color: var(--green); }
-    .h-badge.ru   { background: rgba(68,138,255,0.15); color: var(--blue); }
-    .h-badge.miss { background: rgba(255,82,82,0.12);  color: var(--red); }
+    .h-badge.orig   { background: rgba(0,230,118,0.12);  color: var(--green); }
+    .h-badge.google { background: rgba(68,138,255,0.15); color: var(--blue); }
+    .h-badge.yandex { background: rgba(255,109,59,0.15); color: var(--yandex); }
+    .h-badge.miss   { background: rgba(255,82,82,0.12);  color: var(--red); }
     .h-arrow { font-size: 14px; color: var(--muted); }
     .history-empty { font-size: 13px; color: var(--muted); text-align: center; padding: 16px 0; }
   </style>
@@ -181,9 +202,9 @@
     <span id="netText" style="font-size:12px;color:var(--muted)"></span>
   </div>
 
-  <!-- TOAST — появляется после скана, тапнуть чтобы открыть в Safari -->
+  <!-- TOAST — появляется после скана -->
   <div class="toast" id="toast">
-    <a id="toastLink" href="#" target="_blank" rel="noopener noreferrer">
+    <a class="toast-main" id="toastLink" href="#" target="_blank" rel="noopener noreferrer">
       <div class="toast-left">
         <div class="toast-label" id="toastLabel">Найден</div>
         <div class="toast-code"  id="toastCode"></div>
@@ -193,13 +214,19 @@
         <div class="toast-arrow">↗</div>
       </div>
     </a>
+    <!-- Запасная кнопка: прямой URL (если капча) -->
+    <a class="toast-fallback" id="toastFallbackLink" href="#" target="_blank" rel="noopener noreferrer">
+      <span>Капча? Открыть напрямую + перевести в браузере</span>
+      <span class="toast-fallback-arr">↗</span>
+    </a>
     <button class="toast-close" onclick="dismissToast()">закрыть</button>
   </div>
 
   <div class="mode-wrap">
     <div class="mode-toggle">
-      <button class="mode-btn active-orig" id="btn-orig" onclick="setMode('original')">🌐 Оригинал</button>
-      <button class="mode-btn"             id="btn-ru"   onclick="setMode('russian')">🇷🇺 Русский</button>
+      <button class="mode-btn active-orig" id="btn-orig"   onclick="setMode('original')">🌐 Ориг.</button>
+      <button class="mode-btn"             id="btn-google" onclick="setMode('google')">🔵 Google</button>
+      <button class="mode-btn"             id="btn-yandex" onclick="setMode('yandex')">🟠 Яндекс</button>
     </div>
   </div>
 
@@ -225,7 +252,7 @@
   <script>
     // ── SW ──
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js?v=22')
+      navigator.serviceWorker.register('./sw.js?v=24')
         .then(() => console.log('SW ok'))
         .catch(e => console.error(e));
     }
@@ -264,11 +291,12 @@
     let currentMode = 'original';
     function setMode(m) {
       currentMode = m;
-      document.getElementById('btn-orig').className = 'mode-btn' + (m === 'original' ? ' active-orig' : '');
-      document.getElementById('btn-ru').className   = 'mode-btn' + (m === 'russian'  ? ' active-ru'   : '');
+      document.getElementById('btn-orig').className   = 'mode-btn' + (m === 'original' ? ' active-orig'   : '');
+      document.getElementById('btn-google').className = 'mode-btn' + (m === 'google'   ? ' active-google' : '');
+      document.getElementById('btn-yandex').className = 'mode-btn' + (m === 'yandex'   ? ' active-yandex' : '');
     }
 
-    // ── CSV — добавляем timestamp чтобы всегда получать свежие данные ──
+    // ── CSV ──
     const CSV_BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTpRYWo3PdDGmKTiUW97_zx1BcbtPYZKy0VeifwKLBA0J8oO-DCNyfx3Fbgh81psypZQ6bIG3lsNtmS/pub?gid=0&single=true&output=csv';
     let products = {};
 
@@ -329,15 +357,42 @@
       .catch(err => {
         setDbStatus(false, 'Ошибка загрузки базы');
         console.error('CSV error:', err);
-        // При ошибке тоже убираем оверлей — пусть сканирует, просто ничего не найдёт
         hideOverlay();
       });
+
+    // ── ПОСТРОЕНИЕ URL ПЕРЕВОДА ──
+
+    // Google: субдоменный подход translate.goog (меньше капч чем прокси)
+    function buildGoogleUrl(rawUrl) {
+      try {
+        const u    = new URL(rawUrl);
+        const host = u.hostname.replace(/\./g, '-');
+        const port = u.port ? '-' + u.port : '';
+        const sep  = u.search ? '&' : '?';
+        return 'https://' + host + port + '.translate.goog' +
+               u.pathname + u.search +
+               sep + '_x_tr_sl=auto&_x_tr_tl=ru&_x_tr_hl=ru&_x_tr_pto=wapp';
+      } catch {
+        return 'https://translate.google.com/translate?sl=auto&tl=ru&u=' + encodeURIComponent(rawUrl);
+      }
+    }
+
+    // Яндекс: веб-прокси переводчика
+    function buildYandexUrl(rawUrl) {
+      return 'https://translate.yandex.com/translate?lang=ru&url=' + encodeURIComponent(rawUrl);
+    }
+
+    function buildOpenUrl(rawUrl, mode) {
+      if (mode === 'google') return buildGoogleUrl(rawUrl);
+      if (mode === 'yandex') return buildYandexUrl(rawUrl);
+      return rawUrl;
+    }
 
     // ── ИСТОРИЯ ──
     const sessionHistory = [];
 
     function addToHistory(code, rawUrl, mode, openUrl) {
-      const now = new Date();
+      const now  = new Date();
       const time = now.getHours().toString().padStart(2,'0') + ':' +
                    now.getMinutes().toString().padStart(2,'0') + ':' +
                    now.getSeconds().toString().padStart(2,'0');
@@ -352,9 +407,10 @@
       wrap.style.display = 'block';
       list.innerHTML = sessionHistory.map(item => {
         if (item.found) {
-          const badge = item.mode === 'russian'
-            ? '<span class="h-badge ru">🇷🇺 рус</span>'
-            : '<span class="h-badge orig">🌐 ориг</span>';
+          let badge;
+          if (item.mode === 'google')   badge = '<span class="h-badge google">🔵 Google</span>';
+          else if (item.mode === 'yandex') badge = '<span class="h-badge yandex">🟠 Яндекс</span>';
+          else                          badge = '<span class="h-badge orig">🌐 ориг</span>';
           return '<a class="h-item" href="' + item.openUrl + '" target="_blank" rel="noopener noreferrer">' +
             '<div class="h-left">' +
               '<div class="h-code found">' + item.code + '</div>' +
@@ -383,25 +439,30 @@
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
                   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-    // ── TOAST (только на iOS — на Android window.open работает без него) ──
+    // ── TOAST ──
     let toastTimer = null;
 
-    function showToast(code, openUrl, mode) {
-      const toast = document.getElementById('toast');
-      const link  = document.getElementById('toastLink');
-      document.getElementById('toastLabel').textContent = mode === 'russian' ? '🇷🇺 Русский' : '🌐 Оригинал';
+    function showToast(code, openUrl, rawUrl, mode) {
+      const toast        = document.getElementById('toast');
+      const link         = document.getElementById('toastLink');
+      const fallbackLink = document.getElementById('toastFallbackLink');
+
+      let label = '🌐 Оригинал';
+      if (mode === 'google') label = '🔵 Google Переводчик';
+      if (mode === 'yandex') label = '🟠 Яндекс Переводчик';
+      document.getElementById('toastLabel').textContent = label;
       document.getElementById('toastCode').textContent  = code;
-      link.href = openUrl;
-      toast.className = 'toast ' + (mode === 'russian' ? 'ru' : 'orig');
-      // показываем
+      link.href         = openUrl;
+      fallbackLink.href = rawUrl;
+      toast.className   = 'toast ' + mode;
+
       requestAnimationFrame(() => {
         requestAnimationFrame(() => { toast.classList.add('show'); });
       });
-      // закрываем через 8 сек если не тапнули
       clearTimeout(toastTimer);
-      toastTimer = setTimeout(dismissToast, 8000);
-      // Закрываем сразу после тапа по ссылке
-      link.onclick = () => { setTimeout(dismissToast, 300); };
+      toastTimer = setTimeout(dismissToast, 10000);
+      link.onclick         = () => { setTimeout(dismissToast, 300); };
+      fallbackLink.onclick = () => { setTimeout(dismissToast, 300); };
     }
 
     function dismissToast() {
@@ -410,33 +471,42 @@
     }
 
     // ── СКАНЕР ──
-    let lastScanned = '';
+    let lastScanned  = '';
+    // Флаг паузы: пока вкладка скрыта или только что стала активной —
+    // игнорируем результаты, чтобы замёрзший кадр не считался новым сканом.
+    let scannerPaused = false;
+    let resumeTimer   = null;
 
-    // Когда возвращаемся на вкладку — сбрасываем через 2с
-    // (даём камере время перефокусироваться, чтобы не подхватить старый кадр)
     document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) {
-        setTimeout(() => { lastScanned = ''; }, 2000);
+      if (document.hidden) {
+        // Вкладка ушла в фон — блокируем сканирование и сбрасываем последний код
+        scannerPaused = true;
+        clearTimeout(resumeTimer);
+        lastScanned = '';
+      } else {
+        // Вкладка вернулась — ждём 2 с пока камера перефокусируется
+        clearTimeout(resumeTimer);
+        resumeTimer = setTimeout(() => {
+          lastScanned   = '';
+          scannerPaused = false;
+        }, 2000);
       }
     });
 
     function onScanSuccess(decodedText) {
-      if (!dbReady) return;
-      if (decodedText === lastScanned) return;  // тот же код — игнор
+      if (!dbReady || scannerPaused) return;
+      if (decodedText === lastScanned) return;
       lastScanned = decodedText;
       if (navigator.vibrate) navigator.vibrate(80);
 
       const rawUrl = products[decodedText];
 
       if (rawUrl) {
-        const ruUrl   = 'https://translate.google.com/translate?sl=auto&tl=ru&u=' + encodeURIComponent(rawUrl);
-        const openUrl = currentMode === 'russian' ? ruUrl : rawUrl;
+        const openUrl = buildOpenUrl(rawUrl, currentMode);
         addToHistory(decodedText, rawUrl, currentMode, openUrl);
         if (isIOS) {
-          // iOS Safari блокирует window.open из коллбэка — показываем баннер для тапа
-          showToast(decodedText, openUrl, currentMode);
+          showToast(decodedText, openUrl, rawUrl, currentMode);
         } else {
-          // Android/Desktop — открывается автоматически
           window.open(openUrl, '_blank');
         }
       } else {
@@ -451,22 +521,10 @@
       Html5QrcodeSupportedFormats.QR_CODE
     ];
 
-    // Android — оригинальный рабочий конфиг
-    const SCAN_CONFIG_ANDROID = {
-      fps: 10,
-      qrbox: { width: 300, height: 130 },
-      formatsToSupport: FORMATS
-    };
-
-    // iOS — больше кадров для скорости детектирования
-    const SCAN_CONFIG_IOS = {
-      fps: 25,
-      qrbox: { width: 300, height: 130 },
-      formatsToSupport: FORMATS
-    };
-
-    const SCAN_CONFIG   = isIOS ? SCAN_CONFIG_IOS   : SCAN_CONFIG_ANDROID;
-    const camConstraint = { facingMode: { exact: 'environment' } };
+    const SCAN_CONFIG_ANDROID = { fps: 10, qrbox: { width: 300, height: 130 }, formatsToSupport: FORMATS };
+    const SCAN_CONFIG_IOS     = { fps: 25, qrbox: { width: 300, height: 130 }, formatsToSupport: FORMATS };
+    const SCAN_CONFIG         = isIOS ? SCAN_CONFIG_IOS : SCAN_CONFIG_ANDROID;
+    const camConstraint       = { facingMode: { exact: 'environment' } };
 
     const scanner = new Html5Qrcode("reader");
 
